@@ -1,4 +1,4 @@
-// Generated from D:/9/Research/Ghasemi/LastDance/src/main/grammar/Solidity.g4 by ANTLR 4.13.1
+// Generated from D:/9/Research/Ghasemi/SolidityAST/src/main/grammar/Solidity.g4 by ANTLR 4.13.1
 package parsers;
 
     import main.ast.nodes.*;

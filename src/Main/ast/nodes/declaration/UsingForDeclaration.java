@@ -27,4 +27,24 @@ public class UsingForDeclaration extends ContractPart {
 
     @Override
     public<T>T accept(IVisitor<T> visitor){return visitor.visit(this);}
+
+    public UsingForObject getUsingForObject() {
+        return usingForObject;
+    }
+
+    public void setUsingForObject(UsingForObject usingForObject) {
+        this.usingForObject = usingForObject;
+    }
+
+    public boolean isAllType() {
+        return isAllType;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    public boolean isGlobal() {
+        return isGlobal;
+    }
 }

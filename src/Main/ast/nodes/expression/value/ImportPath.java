@@ -14,4 +14,12 @@ public class ImportPath extends Type {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
 }

@@ -16,4 +16,28 @@ public class TernaryOperatorExpression extends Expression{
 
     @Override
     public <T> T accept(IVisitor<T> visitor){return visitor.visit(this);}
+
+    public Expression getCondition() {
+        return condition;
+    }
+
+    public void setCondition(Expression condition) {
+        this.condition = condition;
+    }
+
+    public Expression getTrueResult() {
+        return trueResult;
+    }
+
+    public void setTrueResult(Expression trueResult) {
+        this.trueResult = trueResult;
+    }
+
+    public Expression getFalseResult() {
+        return falseResult;
+    }
+
+    public void setFalseResult(Expression falseResult) {
+        this.falseResult = falseResult;
+    }
 }

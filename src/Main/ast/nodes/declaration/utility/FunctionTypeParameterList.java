@@ -18,4 +18,12 @@ public class FunctionTypeParameterList extends Declaration {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public ArrayList<FunctionTypeParameter> getFunctionTypeParameters() {
+        return functionTypeParameters;
+    }
+
+    public void setFunctionTypeParameters(ArrayList<FunctionTypeParameter> functionTypeParameters) {
+        this.functionTypeParameters = functionTypeParameters;
+    }
 }

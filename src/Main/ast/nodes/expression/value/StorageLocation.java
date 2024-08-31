@@ -14,4 +14,12 @@ public class StorageLocation extends Type {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
 }

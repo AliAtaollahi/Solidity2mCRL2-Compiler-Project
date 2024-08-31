@@ -20,4 +20,12 @@ public class Block extends Statement {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public ArrayList<Statement> getStatements() {
+        return statements;
+    }
+
+    public void setStatements(ArrayList<Statement> statements) {
+        this.statements = statements;
+    }
 }

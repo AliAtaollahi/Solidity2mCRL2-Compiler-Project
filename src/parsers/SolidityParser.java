@@ -1,4 +1,4 @@
-// Generated from D:/9/Research/Ghasemi/LastDance/src/main/grammar/Solidity.g4 by ANTLR 4.13.1
+// Generated from D:/9/Research/Ghasemi/SolidityAST/src/main/grammar/Solidity.g4 by ANTLR 4.13.1
 package parsers;
 
     import main.ast.nodes.*;
@@ -1222,7 +1222,7 @@ public class SolidityParser extends Parser {
 			setState(332);
 			((ContractDefinitionContext)_localctx).i = identifier();
 
-			        ((ContractDefinitionContext)_localctx).contractDefinitionRet =  new ContractDefinition(((ContractDefinitionContext)_localctx).i.identifierRet);
+			        ((ContractDefinitionContext)_localctx).contractDefinitionRet =  new ContractDefinition(((ContractDefinitionContext)_localctx).i.identifierRet, (((ContractDefinitionContext)_localctx).ab2!=null?((ContractDefinitionContext)_localctx).ab2.getText():null));
 			        if((((ContractDefinitionContext)_localctx).ab1!=null?((ContractDefinitionContext)_localctx).ab1.getText():null) != null)
 			        {
 			            _localctx.contractDefinitionRet.setLine((((ContractDefinitionContext)_localctx).ab1!=null?((ContractDefinitionContext)_localctx).ab1.getLine():0));

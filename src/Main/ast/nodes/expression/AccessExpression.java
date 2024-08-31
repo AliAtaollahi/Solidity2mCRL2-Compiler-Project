@@ -15,4 +15,20 @@ public class AccessExpression extends Expression{
 
     @Override
     public <T> T accept(IVisitor<T> visitor){return visitor.visit(this);}
+
+    public Expression getMaster() {
+        return master;
+    }
+
+    public void setMaster(Expression master) {
+        this.master = master;
+    }
+
+    public Identifier getMember() {
+        return member;
+    }
+
+    public void setMember(Identifier member) {
+        this.member = member;
+    }
 }

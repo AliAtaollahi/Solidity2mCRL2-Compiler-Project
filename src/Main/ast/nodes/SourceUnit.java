@@ -52,4 +52,68 @@ public class SourceUnit extends Node{
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public ArrayList<ImportDirective> getImportDirectives() {
+        return importDirectives;
+    }
+
+    public void setImportDirectives(ArrayList<ImportDirective> importDirectives) {
+        this.importDirectives = importDirectives;
+    }
+
+    public ArrayList<ContractDefinition> getContractDefinitions() {
+        return contractDefinitions;
+    }
+
+    public void setContractDefinitions(ArrayList<ContractDefinition> contractDefinitions) {
+        this.contractDefinitions = contractDefinitions;
+    }
+
+    public ArrayList<EnumDefinition> getEnumDefinitions() {
+        return enumDefinitions;
+    }
+
+    public void setEnumDefinitions(ArrayList<EnumDefinition> enumDefinitions) {
+        this.enumDefinitions = enumDefinitions;
+    }
+
+    public ArrayList<StructDefinition> getStructDefinitions() {
+        return structDefinitions;
+    }
+
+    public void setStructDefinitions(ArrayList<StructDefinition> structDefinitions) {
+        this.structDefinitions = structDefinitions;
+    }
+
+    public ArrayList<FunctionDefinition> getFunctionDefinitions() {
+        return functionDefinitions;
+    }
+
+    public void setFunctionDefinitions(ArrayList<FunctionDefinition> functionDefinitions) {
+        this.functionDefinitions = functionDefinitions;
+    }
+
+    public ArrayList<FileLevelConstant> getFileLevelConstants() {
+        return fileLevelConstants;
+    }
+
+    public void setFileLevelConstants(ArrayList<FileLevelConstant> fileLevelConstants) {
+        this.fileLevelConstants = fileLevelConstants;
+    }
+
+    public ArrayList<CustomErrorDefinition> getCustomErrorDefinitions() {
+        return customErrorDefinitions;
+    }
+
+    public void setCustomErrorDefinitions(ArrayList<CustomErrorDefinition> customErrorDefinitions) {
+        this.customErrorDefinitions = customErrorDefinitions;
+    }
+
+    public ArrayList<UsingForDeclaration> getUsingForDeclarations() {
+        return usingForDeclarations;
+    }
+
+    public void setUsingForDeclarations(ArrayList<UsingForDeclaration> usingForDeclarations) {
+        this.usingForDeclarations = usingForDeclarations;
+    }
 }

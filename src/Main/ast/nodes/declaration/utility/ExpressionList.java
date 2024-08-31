@@ -20,4 +20,12 @@ public class ExpressionList extends FunctionCallArguments {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public ArrayList<Expression> getExpressionList() {
+        return expressionList;
+    }
+
+    public void setExpressionList(ArrayList<Expression> expressionList) {
+        this.expressionList = expressionList;
+    }
 }

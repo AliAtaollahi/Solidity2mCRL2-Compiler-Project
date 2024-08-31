@@ -31,4 +31,12 @@ public class UnaryExpression extends Expression {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public Expression getExpression() {
+        return expression;
+    }
+
+    public UnaryOperator getOp() {
+        return op;
+    }
 }

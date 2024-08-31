@@ -25,4 +25,16 @@ public class IdentifierList extends VariableList {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public ArrayList<Identifier> getIdentifiers() {
+        return identifiers;
+    }
+
+    public void setIdentifiers(ArrayList<Identifier> identifiers) {
+        this.identifiers = identifiers;
+    }
+
+    public boolean isFirstNull() {
+        return isFirstNull;
+    }
 }

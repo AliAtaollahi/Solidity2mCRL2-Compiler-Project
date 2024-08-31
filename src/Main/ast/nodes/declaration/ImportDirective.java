@@ -46,4 +46,36 @@ public class ImportDirective extends Declaration {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public ImportPath getImportPath() {
+        return importPath;
+    }
+
+    public void setImportPath(ImportPath importPath) {
+        this.importPath = importPath;
+    }
+
+    public Identifier getAliasId() {
+        return aliasId;
+    }
+
+    public void setAliasId(Identifier aliasId) {
+        this.aliasId = aliasId;
+    }
+
+    public Boolean getImportAll() {
+        return importAll;
+    }
+
+    public void setImportAll(Boolean importAll) {
+        this.importAll = importAll;
+    }
+
+    public ArrayList<ImportElement> getImportedElements() {
+        return importedElements;
+    }
+
+    public void setImportedElements(ArrayList<ImportElement> importedElements) {
+        this.importedElements = importedElements;
+    }
 }

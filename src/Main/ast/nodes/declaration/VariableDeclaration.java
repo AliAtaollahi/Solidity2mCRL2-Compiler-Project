@@ -25,4 +25,24 @@ public class VariableDeclaration extends VariableList {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public void setVariableName(Identifier variableName) {
+        this.variableName = variableName;
+    }
+
+    public Type getVariableType() {
+        return variableType;
+    }
+
+    public void setVariableType(Type variableType) {
+        this.variableType = variableType;
+    }
+
+    public StorageLocation getStorageLocation() {
+        return storageLocation;
+    }
+
+    public void setStorageLocation(StorageLocation storageLocation) {
+        this.storageLocation = storageLocation;
+    }
 }

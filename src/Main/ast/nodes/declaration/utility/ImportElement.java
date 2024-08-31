@@ -17,4 +17,20 @@ public class ImportElement extends Declaration {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public Identifier getElementId() {
+        return elementId;
+    }
+
+    public void setElementId(Identifier elementId) {
+        this.elementId = elementId;
+    }
+
+    public Identifier getAliasId() {
+        return aliasId;
+    }
+
+    public void setAliasId(Identifier aliasId) {
+        this.aliasId = aliasId;
+    }
 }

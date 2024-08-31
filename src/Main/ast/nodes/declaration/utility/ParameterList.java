@@ -22,4 +22,12 @@ public class ParameterList extends Declaration {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public ArrayList<Parameter> getParameters() {
+        return parameters;
+    }
+
+    public void setParameters(ArrayList<Parameter> parameters) {
+        this.parameters = parameters;
+    }
 }

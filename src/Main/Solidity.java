@@ -3,6 +3,8 @@ package main;
 
 
 import main.ast.nodes.SourceUnit;
+import main.visitor.ExclusionAnalyzer;
+
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -18,6 +20,8 @@ public class Solidity {
         CommonTokenStream tokens = new CommonTokenStream(flLexer);
         SolidityParser flParser = new SolidityParser(tokens);
         SourceUnit sourceUnit = flParser.sourceUnit().sourceUnitRet;
+        ExclusionAnalyzer exclusionAnalyzer = new ExclusionAnalyzer();
+        exclusionAnalyzer.visit(sourceUnit);
         System.out.println();
     }
 }

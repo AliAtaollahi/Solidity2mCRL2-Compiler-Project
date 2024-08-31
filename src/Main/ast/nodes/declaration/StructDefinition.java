@@ -22,5 +22,21 @@ public class StructDefinition extends ContractPart {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public Identifier getNameId() {
+        return nameId;
+    }
+
+    public void setNameId(Identifier nameId) {
+        this.nameId = nameId;
+    }
+
+    public ArrayList<VariableDeclaration> getVariableDeclarations() {
+        return variableDeclarations;
+    }
+
+    public void setVariableDeclarations(ArrayList<VariableDeclaration> variableDeclarations) {
+        this.variableDeclarations = variableDeclarations;
+    }
 }
 

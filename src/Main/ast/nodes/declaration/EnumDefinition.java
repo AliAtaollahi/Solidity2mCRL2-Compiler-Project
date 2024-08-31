@@ -20,5 +20,21 @@ public class EnumDefinition extends ContractPart {
 
     @Override
     public<T>T accept(IVisitor<T> visitor){return visitor.visit(this);}
+
+    public Identifier getName() {
+        return name;
+    }
+
+    public void setName(Identifier name) {
+        this.name = name;
+    }
+
+    public ArrayList<EnumValue> getEnumValues() {
+        return enumValues;
+    }
+
+    public void setEnumValues(ArrayList<EnumValue> enumValues) {
+        this.enumValues = enumValues;
+    }
 }
 

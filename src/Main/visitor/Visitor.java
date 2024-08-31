@@ -18,7 +18,7 @@ import main.ast.nodes.expression.value.ImportPath;
 import main.ast.nodes.expression.value.StorageLocation;
 import main.ast.nodes.statement.*;
 
-public class Visitor<T> implements IVisitor<T> {
+public abstract class Visitor<T> implements IVisitor<T> {
     @Override
     public T visit(SourceUnit sourceUnit) {
         return null;

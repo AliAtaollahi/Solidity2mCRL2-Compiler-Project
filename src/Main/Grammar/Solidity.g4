@@ -100,7 +100,7 @@ importPath : StringLiteralFragment;
 contractDefinition returns [ContractDefinition contractDefinitionRet]
   : (ab1 = 'abstract')? ab2 = ( 'contract' | 'interface' | 'library' ) i = identifier
     {
-        $contractDefinitionRet = new ContractDefinition($i.identifierRet);
+        $contractDefinitionRet = new ContractDefinition($i.identifierRet, $ab2.text);
         if($ab1.text != null)
         {
             $contractDefinitionRet.setLine($ab1.line);

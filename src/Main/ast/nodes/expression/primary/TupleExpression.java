@@ -20,4 +20,12 @@ public class TupleExpression extends PrimaryExpression {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public ArrayList<Expression> getExpressions() {
+        return expressions;
+    }
+
+    public void setExpressions(ArrayList<Expression> expressions) {
+        this.expressions = expressions;
+    }
 }

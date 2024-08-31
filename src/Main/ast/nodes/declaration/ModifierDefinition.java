@@ -35,5 +35,25 @@ public class ModifierDefinition extends ContractPart {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public Identifier getIdentifier() {
+        return identifier;
+    }
+
+    public void setIdentifier(Identifier identifier) {
+        this.identifier = identifier;
+    }
+
+    public ParameterList getParameterList() {
+        return parameterList;
+    }
+
+    public Modifier getModifier() {
+        return modifier;
+    }
+
+    public Block getScope() {
+        return scope;
+    }
 }
 

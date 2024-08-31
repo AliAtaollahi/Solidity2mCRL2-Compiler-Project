@@ -17,4 +17,12 @@ public class UserDefinedTypeName extends Type {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public ArrayList<Identifier> getTypeChain() {
+        return typeChain;
+    }
+
+    public void setTypeChain(ArrayList<Identifier> typeChain) {
+        this.typeChain = typeChain;
+    }
 }

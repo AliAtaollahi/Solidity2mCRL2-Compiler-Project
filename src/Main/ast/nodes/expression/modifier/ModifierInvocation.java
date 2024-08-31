@@ -28,4 +28,20 @@ public class ModifierInvocation extends Modifier {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public Identifier getName() {
+        return name;
+    }
+
+    public void setName(Identifier name) {
+        this.name = name;
+    }
+
+    public boolean isParanthesized() {
+        return paranthesized;
+    }
+
+    public ExpressionList getExpressionList() {
+        return expressionList;
+    }
 }

@@ -19,4 +19,12 @@ public class NameValueList extends FunctionCallArguments {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public ArrayList<NameValue> getNameValues() {
+        return nameValues;
+    }
+
+    public void setNameValues(ArrayList<NameValue> nameValues) {
+        this.nameValues = nameValues;
+    }
 }

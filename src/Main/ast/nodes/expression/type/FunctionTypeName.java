@@ -32,4 +32,20 @@ public class FunctionTypeName extends Type {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public FunctionTypeParameterList getFunctionTypeParameterList() {
+        return functionTypeParameterList;
+    }
+
+    public FunctionTypeParameterList getFunctionReturnTypeParameterList() {
+        return functionReturnTypeParameterList;
+    }
+
+    public ArrayList<Modifier> getFunctionModifiers() {
+        return functionModifiers;
+    }
+
+    public void setFunctionModifiers(ArrayList<Modifier> functionModifiers) {
+        this.functionModifiers = functionModifiers;
+    }
 }

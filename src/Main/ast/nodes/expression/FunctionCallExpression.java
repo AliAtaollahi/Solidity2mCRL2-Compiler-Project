@@ -15,4 +15,20 @@ public class FunctionCallExpression extends Expression{
 
     @Override
     public <T> T accept(IVisitor<T> visitor){return visitor.visit(this);}
+
+    public Expression getFunctionName() {
+        return functionName;
+    }
+
+    public void setFunctionName(Expression functionName) {
+        this.functionName = functionName;
+    }
+
+    public FunctionCallArguments getArgs() {
+        return args;
+    }
+
+    public void setArgs(FunctionCallArguments args) {
+        this.args = args;
+    }
 }

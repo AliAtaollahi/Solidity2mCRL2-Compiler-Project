@@ -21,4 +21,20 @@ public class ListType extends Type {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public Type getType() {
+        return type;
+    }
+
+    public void setType(Type type) {
+        this.type = type;
+    }
+
+    public Expression getSize() {
+        return size;
+    }
+
+    public void setSize(Expression size) {
+        this.size = size;
+    }
 }

@@ -30,4 +30,36 @@ public class FunctionDefinition extends ContractPart {
 
     @Override
     public<T>T accept(IVisitor<T> visitor){return visitor.visit(this);}
+
+    public PrimaryExpression getFunctionDescriptor() {
+        return functionDescriptor;
+    }
+
+    public void setFunctionDescriptor(PrimaryExpression functionDescriptor) {
+        this.functionDescriptor = functionDescriptor;
+    }
+
+    public ParameterList getParameterList() {
+        return parameterList;
+    }
+
+    public void setParameterList(ParameterList parameterList) {
+        this.parameterList = parameterList;
+    }
+
+    public ModifierList getModifierList() {
+        return modifierList;
+    }
+
+    public void setModifierList(ModifierList modifierList) {
+        this.modifierList = modifierList;
+    }
+
+    public ParameterList getReturnParameterList() {
+        return returnParameterList;
+    }
+
+    public Block getScope() {
+        return scope;
+    }
 }

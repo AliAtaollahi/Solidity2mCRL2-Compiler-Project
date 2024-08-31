@@ -16,4 +16,12 @@ public class RevertStatement extends Statement {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public FunctionCall getFunctionCall() {
+        return functionCall;
+    }
+
+    public void setFunctionCall(FunctionCall functionCall) {
+        this.functionCall = functionCall;
+    }
 }

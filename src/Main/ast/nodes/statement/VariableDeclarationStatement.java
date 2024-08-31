@@ -26,4 +26,12 @@ public class VariableDeclarationStatement extends SimpleStatement {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public VariableList getVariableList() {
+        return variableList;
+    }
+
+    public Expression getInitiateValue() {
+        return initiateValue;
+    }
 }

@@ -21,4 +21,36 @@ public class Mapping extends Type {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public Type getMappingKey() {
+        return mappingKey;
+    }
+
+    public void setMappingKey(Type mappingKey) {
+        this.mappingKey = mappingKey;
+    }
+
+    public Identifier getMappingKeyName() {
+        return mappingKeyName;
+    }
+
+    public void setMappingKeyName(Identifier mappingKeyName) {
+        this.mappingKeyName = mappingKeyName;
+    }
+
+    public Type getMappingValue() {
+        return mappingValue;
+    }
+
+    public void setMappingValue(Type mappingValue) {
+        this.mappingValue = mappingValue;
+    }
+
+    public Identifier getMappingValueName() {
+        return mappingValueName;
+    }
+
+    public void setMappingValueName(Identifier mappingValueName) {
+        this.mappingValueName = mappingValueName;
+    }
 }

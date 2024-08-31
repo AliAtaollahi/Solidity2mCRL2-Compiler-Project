@@ -16,4 +16,20 @@ public class WhileStatement extends Statement {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public Expression getCondition() {
+        return condition;
+    }
+
+    public void setCondition(Expression condition) {
+        this.condition = condition;
+    }
+
+    public Statement getScope() {
+        return scope;
+    }
+
+    public void setScope(Statement scope) {
+        this.scope = scope;
+    }
 }

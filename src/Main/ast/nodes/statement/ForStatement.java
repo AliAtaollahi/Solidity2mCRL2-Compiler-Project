@@ -30,4 +30,20 @@ public class ForStatement extends Statement {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public SimpleStatement getInitial() {
+        return initial;
+    }
+
+    public ExpressionStatement getCondition() {
+        return condition;
+    }
+
+    public Expression getIteration() {
+        return iteration;
+    }
+
+    public Statement getScope() {
+        return scope;
+    }
 }

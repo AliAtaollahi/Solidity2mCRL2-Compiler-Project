@@ -18,4 +18,20 @@ public class NameValue extends Declaration {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public Identifier getKey() {
+        return key;
+    }
+
+    public void setKey(Identifier key) {
+        this.key = key;
+    }
+
+    public Expression getValue() {
+        return value;
+    }
+
+    public void setValue(Expression value) {
+        this.value = value;
+    }
 }

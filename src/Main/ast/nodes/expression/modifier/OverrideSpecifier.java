@@ -17,4 +17,12 @@ public class OverrideSpecifier extends Modifier {
 
     @Override
     public <T> T accept(IVisitor<T> visitor){return visitor.visit(this);}
+
+    public ArrayList<UserDefinedTypeName> getTypes() {
+        return types;
+    }
+
+    public void setTypes(ArrayList<UserDefinedTypeName> types) {
+        this.types = types;
+    }
 }

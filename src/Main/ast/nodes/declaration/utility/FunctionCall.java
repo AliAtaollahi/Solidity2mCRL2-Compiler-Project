@@ -20,4 +20,20 @@ public class FunctionCall extends Declaration {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public Expression getFunction() {
+        return function;
+    }
+
+    public void setFunction(Expression function) {
+        this.function = function;
+    }
+
+    public FunctionCallArguments getArgs() {
+        return args;
+    }
+
+    public void setArgs(FunctionCallArguments args) {
+        this.args = args;
+    }
 }

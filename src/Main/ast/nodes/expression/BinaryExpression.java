@@ -17,4 +17,28 @@ public class BinaryExpression extends Expression{
 
     @Override
     public <T> T accept(IVisitor<T> visitor){return visitor.visit(this);}
+
+    public Expression getFirstOperand() {
+        return firstOperand;
+    }
+
+    public void setFirstOperand(Expression firstOperand) {
+        this.firstOperand = firstOperand;
+    }
+
+    public Expression getSecondOperand() {
+        return secondOperand;
+    }
+
+    public void setSecondOperand(Expression secondOperand) {
+        this.secondOperand = secondOperand;
+    }
+
+    public BinaryOperator getBinaryOperator() {
+        return binaryOperator;
+    }
+
+    public void setBinaryOperator(BinaryOperator binaryOperator) {
+        this.binaryOperator = binaryOperator;
+    }
 }

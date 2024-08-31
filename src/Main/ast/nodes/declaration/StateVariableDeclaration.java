@@ -34,5 +34,29 @@ public class StateVariableDeclaration extends ContractPart {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public Type getType() {
+        return type;
+    }
+
+    public void setType(Type type) {
+        this.type = type;
+    }
+
+    public ArrayList<Modifier> getModifiers() {
+        return modifiers;
+    }
+
+    public void setModifiers(ArrayList<Modifier> modifiers) {
+        this.modifiers = modifiers;
+    }
+
+    public Identifier getName() {
+        return name;
+    }
+
+    public Expression getValue() {
+        return value;
+    }
 }
 

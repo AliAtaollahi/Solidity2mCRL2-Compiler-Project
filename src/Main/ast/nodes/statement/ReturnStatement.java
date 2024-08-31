@@ -19,4 +19,8 @@ public class ReturnStatement extends Statement {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public Expression getValue() {
+        return value;
+    }
 }

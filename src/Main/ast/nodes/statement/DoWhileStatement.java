@@ -18,4 +18,20 @@ public class DoWhileStatement extends Statement {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public Statement getScope() {
+        return scope;
+    }
+
+    public void setScope(Statement scope) {
+        this.scope = scope;
+    }
+
+    public Expression getCondition() {
+        return condition;
+    }
+
+    public void setCondition(Expression condition) {
+        this.condition = condition;
+    }
 }

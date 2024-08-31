@@ -11,4 +11,12 @@ public class UintType extends ElementaryTypeName {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public String getNumberOfBits() {
+        return numberOfBits;
+    }
+
+    public void setNumberOfBits(String numberOfBits) {
+        this.numberOfBits = numberOfBits;
+    }
 }

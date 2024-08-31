@@ -23,4 +23,24 @@ public class IfStatement extends Statement {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public Expression getCondition() {
+        return condition;
+    }
+
+    public void setCondition(Expression condition) {
+        this.condition = condition;
+    }
+
+    public Statement getTrueResult() {
+        return trueResult;
+    }
+
+    public void setTrueResult(Statement trueResult) {
+        this.trueResult = trueResult;
+    }
+
+    public Statement getFalseResult() {
+        return falseResult;
+    }
 }

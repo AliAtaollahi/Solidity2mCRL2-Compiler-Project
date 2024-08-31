@@ -26,4 +26,20 @@ public class VariableDeclarationList extends VariableList {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public ArrayList<VariableDeclaration> getVariableDeclarations() {
+        return variableDeclarations;
+    }
+
+    public void setVariableDeclarations(ArrayList<VariableDeclaration> variableDeclarations) {
+        this.variableDeclarations = variableDeclarations;
+    }
+
+    public boolean isThereFirst() {
+        return isThereFirst;
+    }
+
+    public void setThereFirst(boolean thereFirst) {
+        isThereFirst = thereFirst;
+    }
 }

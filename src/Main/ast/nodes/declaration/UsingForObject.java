@@ -22,4 +22,20 @@ public class UsingForObject extends Declaration {
 
     @Override
     public<T>T accept(IVisitor<T> visitor){return visitor.visit(this);}
+
+    public Type getType() {
+        return type;
+    }
+
+    public void setType(Type type) {
+        this.type = type;
+    }
+
+    public ArrayList<UsingForObjectDirective> getObjectDirectives() {
+        return objectDirectives;
+    }
+
+    public void setObjectDirectives(ArrayList<UsingForObjectDirective> objectDirectives) {
+        this.objectDirectives = objectDirectives;
+    }
 }

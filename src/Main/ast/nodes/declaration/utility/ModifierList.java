@@ -25,4 +25,12 @@ public class ModifierList extends Declaration {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    public ArrayList<Modifier> getModifiers() {
+        return modifiers;
+    }
+
+    public void setModifiers(ArrayList<Modifier> modifiers) {
+        this.modifiers = modifiers;
+    }
 }
