@@ -23,6 +23,7 @@ import java.util.ArrayList;
 
 public class ExclusionAnalyzer extends Visitor<Void> {
     private ArrayList<ContractDefinition> deletedContractDefinitions = new ArrayList<>();
+    private ArrayList<ContractPart> deletedContractParts = new ArrayList<>();
 
     @Override
     public Void visit(SourceUnit sourceUnit) {
@@ -36,8 +37,7 @@ public class ExclusionAnalyzer extends Visitor<Void> {
         for (ContractDefinition contractDefinition : sourceUnit.getContractDefinitions()) {
             if ((contractDefinition.getContractType().equals(ContractType.INTERFACE))) {
                 deletedContractDefinitions.add(contractDefinition);
-            }
-            else {
+            } else {
                 cleanContractDefinitions.add(contractDefinition);
                 contractDefinition.accept(this);
             }
@@ -141,14 +141,14 @@ public class ExclusionAnalyzer extends Visitor<Void> {
         for (InheritanceSpecifier inheritanceSpecifier : contractDefinition.getInheritanceSpecifiers()) {
             boolean check = true;
             if (inheritanceSpecifier != null) {
-                if(inheritanceSpecifier.getType() instanceof UserDefinedTypeName) {
+                if (inheritanceSpecifier.getType() instanceof UserDefinedTypeName) {
                     for (ContractDefinition contractDefinition1 : this.deletedContractDefinitions) {
                         if (((UserDefinedTypeName) inheritanceSpecifier.getType()).getTypeChain().contains(contractDefinition1.getName())) {
                             check = false;
                         }
                     }
                 }
-                if(check) {
+                if (check) {
                     cleanInheritanceSpecifiers.add(inheritanceSpecifier);
                     inheritanceSpecifier.accept(this);
                 }
@@ -159,9 +159,25 @@ public class ExclusionAnalyzer extends Visitor<Void> {
         // Visit each contract part in the list
         ArrayList<ContractPart> cleanContractParts = new ArrayList<>();
         for (ContractPart contractPart : contractDefinition.getContractParts()) {
+            boolean check = true;
             if (contractPart != null) {
-                cleanContractParts.add(contractPart);
-                contractPart.accept(this);
+                try {
+                    if (contractPart instanceof FunctionDefinition) {
+                        for (Modifier modifier : ((FunctionDefinition) contractPart).getModifierList().getModifiers()) {
+                            if (modifier.equals("view") || modifier.equals("constant") || modifier.equals("pure")) {
+                                check = false;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                }
+
+                if (check) {
+                    cleanContractParts.add(contractPart);
+                    contractPart.accept(this);
+                } else {
+                    this.deletedContractParts.add(contractPart);
+                }
             }
         }
         contractDefinition.setContractParts(cleanContractParts);

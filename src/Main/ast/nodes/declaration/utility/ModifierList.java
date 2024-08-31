@@ -16,11 +16,9 @@ public class ModifierList extends Declaration {
     public void addModifier(String modifier) {
         this.modifiers.add(new OtherModifers(modifier));
     }
-
     public void addModifier(Modifier modifier) {
         this.modifiers.add(modifier);
     }
-
     @Override
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);

@@ -12,6 +12,21 @@ public class ModifierInvocation extends Modifier {
     private boolean paranthesized = false;
     private ExpressionList expressionList;
 
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof String && ((String)obj).equals(this.name)) {
+            return true;
+        }
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        ModifierInvocation other = (ModifierInvocation) obj;
+        return name != null ? name.equals(other.name) : other.name == null;
+    }
+
     public ModifierInvocation(Identifier name) {
         this.name = name;
     }
