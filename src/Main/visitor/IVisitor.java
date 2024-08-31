@@ -1,61 +1,168 @@
-package Main.visitor;
+package main.visitor;
 
-import Main.AST.Node.Program;
-import Main.AST.Node.declaration.*;
-import Main.AST.Node.expression.*;
-import Main.AST.Node.expression.values.*;
-import Main.AST.Node.Statement.*;
+import main.ast.nodes.SourceUnit;
+import main.ast.nodes.declaration.*;
+import main.ast.nodes.declaration.utility.*;
+import main.ast.nodes.expression.*;
+import main.ast.nodes.expression.modifier.ModifierInvocation;
+import main.ast.nodes.expression.modifier.OtherModifers;
+import main.ast.nodes.expression.modifier.OverrideSpecifier;
+import main.ast.nodes.expression.primary.*;
+import main.ast.nodes.expression.type.AddressPayable;
+import main.ast.nodes.expression.type.FunctionTypeName;
+import main.ast.nodes.expression.type.Mapping;
+import main.ast.nodes.expression.type.UserDefinedTypeName;
+import main.ast.nodes.expression.type.primitive.*;
+import main.ast.nodes.expression.value.EnumValue;
+import main.ast.nodes.expression.value.ImportPath;
+import main.ast.nodes.expression.value.StorageLocation;
+import main.ast.nodes.statement.*;
 
 public interface IVisitor<T> {
-    T visit(Program program);
-
-    T visit(ContractDeclaration contractDeclaration);
-
-    T visit(FunctionDeclaration functionDeclaration);
-
-    T visit(VarDeclaration varDeclaration);
-
-    T visit(GlobVariableDeclaration globVariableDeclaration);
-
-    T visit(UnaryExpression unaryExpression);
-
-    T visit(BinaryExpression binaryExpression);
-
-    T visit(VarAccess varAccess);
-
+    T visit(SourceUnit sourceUnit);
     T visit(Identifier identifier);
+    T visit(BinaryExpression binaryExpression);
+    T visit(UnaryExpression unaryExpression);
+    T visit(ImportDirective importDirective);
+    T visit(ContractDefinition contractDefinition);
+    T visit(EnumDefinition enumDefinition);
+    T visit(StructDefinition structDefinition);
+    T visit(FileLevelConstant fileLevelConstant);
+    T visit(CustomErrorDefinition customErrorDefinition);
+    T visit(UsingForDeclaration usingForDeclaration);
+    T visit(FunctionDefinition functionDefinition);
 
-    T visit(ArrayIdentifier arrayIdentifier);
+    T visit(FunctionDescriptor functionDescriptor);
 
-    T visit(IntValue value);
+    T visit(ImportElement importElement);
 
-    T visit(StringValue value);
+    T visit(VariableDeclaration variableDeclaration);
 
-    T visit(BoolValue boolValue);
+    T visit(ImportPath importPath);
 
-    T visit(FloatValue floatValue);
+    T visit(StorageLocation storageLocation);
+
+    T visit(AddressType addressType);
+
+    T visit(BoolType boolType);
+
+    T visit(ByteLowerCaseType byteLowerCaseType);
+
+    T visit(ByteUpperCaseType byteUpperCaseType);
+
+    T visit(FixedType fixedType);
+
+    T visit(IntType intType);
+
+    T visit(StringType stringType);
+
+    T visit(UfixedType ufixedType);
+
+    T visit(UintType uintType);
+
+    T visit(VarType varType);
+
+    T visit(Mapping mapping);
+
+    T visit(UserDefinedTypeName userDefinedTypeName);
+
+    T visit(FunctionTypeParameterList functionTypeParameterList);
+
+    T visit(FunctionTypeParameter functionTypeParameter);
+
+    T visit(FunctionTypeName functionTypeName);
+
+    T visit(AddressPayable addressPayable);
+
+    T visit(ListType listType);
+
+    T visit(OtherPrimaryExpression otherPrimaryExpression);
+
+    T visit(NumberLiteral numberLiteral);
+
+    T visit(HexLiteral hexLiteral);
+
+    T visit(StringLiteral stringLiteral);
+
+    T visit(TupleExpression tupleExpression);
+
+    T visit(NullExpression nullExpression);
+
+    T visit(AccessExpression accessExpression);
+
+    T visit(ObjectCreation objectCreation);
+
+    T visit(NameValue nameValue);
+
+    T visit(NameValueList nameValueList);
+
+    T visit(ExpressionList expressionList);
+
+    T visit(FunctionCallArguments functionCallArguments);
+
+    T visit(FunctionCallExpression functionCallExpression);
+
+    T visit(StructInitializationExpression structInitializationExpression);
+
+    T visit(TernaryOperatorExpression ternaryOperatorExpression);
+
+    T visit(ParenthesizedExpression parenthesizedExpression);
+
+    T visit(RequireExpression requireExpression);
+
+    T visit(EnumValue enumValue);
+
+    T visit(Parameter parameter);
+
+    T visit(ParameterList parameterList);
+
+    T visit(UsingForObjectDirective usingForObjectDirective);
+
+    T visit(UsingForObject usingForObject);
+
+    T visit(OtherModifers otherModifers);
+
+    T visit(ModifierList modifierList);
+
+    T visit(ModifierInvocation modifierInvocation);
+
+    T visit(OverrideSpecifier overrideSpecifier);
+
+    T visit(Block block);
+
+    T visit(IfStatement ifStatement);
+
+    T visit(WhileStatement whileStatement);
+
+    T visit(ForStatement forStatement);
 
     T visit(FunctionCall functionCall);
 
-    T visit(MethodCall methodCall);
+    T visit(RevertStatement revertStatement);
 
-    T visit(IfElseStmt conditional);
+    T visit(IdentifierList identifierList);
 
-    T visit(Assignment assignStmt);
+    T visit(VariableDeclarationList variableDeclarationList);
 
-    T visit(ForStmt forStmt);
+    T visit(VariableDeclarationStatement variableDeclarationStatement);
 
-    //T visit(WhileStmt whileStmt);
+    T visit(ExpressionStatement expressionStatement);
 
-    //T visit(ContinueBreakStmt continueBreakStmt);
+    T visit(BreakStatement breakStatement);
 
-    T visit(ExpressionStmt expressionStmt);
+    T visit(ContinueStatement continueStatement);
 
-    T visit(ReturnStmt returnStmt);
+    T visit(ThrowStatement throwStatement);
 
-    T visit(AddressValue addressValue);
+    T visit(ReturnStatement returnStatement);
 
-    //T visit(ThrowStmt throwStmt);
+    T visit(DoWhileStatement doWhileStatement);
 
-    //T visit(TryCatchStmt tryCatchStmt);
+    T visit(InheritanceSpecifier inheritanceSpecifier);
+
+    T visit(ModifierDefinition modifierDefinition);
+
+    T visit(StateVariableDeclaration stateVariableDeclaration);
+
+    T visit(OtherFunctionDescriptors otherFunctionDescriptors);
 }
