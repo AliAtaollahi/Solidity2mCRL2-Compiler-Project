@@ -17,7 +17,7 @@ interface IERC20 {
         returns (bool);
 }
 
-ERC20 Token contract that implements the interface contract functions:
+//ERC20 Token contract that implements the interface contract functions:
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 

@@ -38,8 +38,13 @@ public class ExclusionAnalyzer extends Visitor<Void> {
             if ((contractDefinition.getContractType().equals(ContractType.INTERFACE))) {
                 deletedContractDefinitions.add(contractDefinition);
             } else {
-                cleanContractDefinitions.add(contractDefinition);
                 contractDefinition.accept(this);
+                if (contractDefinition.getContractParts().size() != 0) {
+                    cleanContractDefinitions.add(contractDefinition);
+                }
+                else {
+                    this.deletedContractDefinitions.add(contractDefinition);
+                }
             }
         }
         sourceUnit.setContractDefinitions(cleanContractDefinitions);
