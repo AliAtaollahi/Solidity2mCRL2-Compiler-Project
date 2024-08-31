@@ -22,6 +22,8 @@ import main.ast.nodes.statement.*;
 import java.util.ArrayList;
 
 public class ExclusionAnalyzer extends Visitor<Void> {
+    private ArrayList<ContractDefinition> deletedContractDefinitions = new ArrayList<>();
+
     @Override
     public Void visit(SourceUnit sourceUnit) {
         // Visit all ImportDirectives
@@ -30,9 +32,17 @@ public class ExclusionAnalyzer extends Visitor<Void> {
         }
 
         // Visit all ContractDefinitions
+        ArrayList<ContractDefinition> cleanContractDefinitions = new ArrayList<>();
         for (ContractDefinition contractDefinition : sourceUnit.getContractDefinitions()) {
-            contractDefinition.accept(this);
+            if ((contractDefinition.getContractType().equals(ContractType.INTERFACE))) {
+                deletedContractDefinitions.add(contractDefinition);
+            }
+            else {
+                cleanContractDefinitions.add(contractDefinition);
+                contractDefinition.accept(this);
+            }
         }
+        sourceUnit.setContractDefinitions(cleanContractDefinitions);
 
         // Visit all EnumDefinitions
         for (EnumDefinition enumDefinition : sourceUnit.getEnumDefinitions()) {
@@ -127,11 +137,24 @@ public class ExclusionAnalyzer extends Visitor<Void> {
         }
 
         // Visit each inheritance specifier in the list
+        ArrayList<InheritanceSpecifier> cleanInheritanceSpecifiers = new ArrayList<>();
         for (InheritanceSpecifier inheritanceSpecifier : contractDefinition.getInheritanceSpecifiers()) {
+            boolean check = true;
             if (inheritanceSpecifier != null) {
-                inheritanceSpecifier.accept(this);
+                if(inheritanceSpecifier.getType() instanceof UserDefinedTypeName) {
+                    for (ContractDefinition contractDefinition1 : this.deletedContractDefinitions) {
+                        if (((UserDefinedTypeName) inheritanceSpecifier.getType()).getTypeChain().contains(contractDefinition1.getName())) {
+                            check = false;
+                        }
+                    }
+                }
+                if(check) {
+                    cleanInheritanceSpecifiers.add(inheritanceSpecifier);
+                    inheritanceSpecifier.accept(this);
+                }
             }
         }
+        contractDefinition.setInheritanceSpecifiers(cleanInheritanceSpecifiers);
 
         // Visit each contract part in the list
         ArrayList<ContractPart> cleanContractParts = new ArrayList<>();

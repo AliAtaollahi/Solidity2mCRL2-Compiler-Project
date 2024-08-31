@@ -22,6 +22,29 @@ public class Identifier extends PrimaryExpression {
     }
 
     @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Identifier && this.name == ((Identifier)obj).getName()) {
+            return true;
+        }
+
+        if (this == obj) {
+            return true; // Check if the two references are the same
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false; // Check for null and if the classes are different
+        }
+        Identifier other = (Identifier) obj; // Cast to Identifier
+        return name != null ? name.equals(other.name) : other.name == null;
+        // Check if names are equal, handling nulls appropriately
+    }
+
+    @Override
+    public int hashCode() {
+        return name != null ? name.hashCode() : 0;
+        // Generate hash code based on the name field
+    }
+
+    @Override
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
