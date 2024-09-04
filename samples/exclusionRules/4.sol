@@ -43,8 +43,9 @@ contract UseConstant {
         return 100;
     }
 
-    function() view constant pure returns (uint) public myFunctionType;
-    function() view pure returns (uint) public myFunctionType;
+    function() view returns (uint) public myFunctionType3; // this must be handled
+    function() view constant returns (uint) public myFunctionType4; // this must be handled
+    function sampleFunction(uint) public return myFunctionType3;
 }
 
 // Combined contract that uses functions from all previous contracts

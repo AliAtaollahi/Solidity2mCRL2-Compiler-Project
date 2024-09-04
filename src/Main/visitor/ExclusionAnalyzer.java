@@ -177,22 +177,23 @@ public class ExclusionAnalyzer extends Visitor<Void> {
                 } catch (Exception e) {
                 }
 
-                try {
-                    if (contractPart instanceof StateVariableDeclaration) {
-                        for (Modifier modifier : ((StateVariableDeclaration) contractPart).getModifiers()) {
-                            if (modifier.equals("view") || modifier.equals("constant") || modifier.equals("pure")) {
-                                check = false;
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                }
+//                try {
+//                    if (contractPart instanceof StateVariableDeclaration) {
+//                        for (Modifier modifier : ((StateVariableDeclaration) contractPart).getModifiers()) {
+//                            if (modifier.equals("view") || modifier.equals("constant") || modifier.equals("pure")) {
+//                                check = false;
+//                            }
+//                        }
+//                    }
+//                } catch (Exception e) {
+//                }
 
                 if (check) {
                     cleanContractParts.add(contractPart);
                     contractPart.accept(this);
                 } else {
                     this.deletedContractParts.add(contractPart);
+                    this.depe
                 }
             }
         }

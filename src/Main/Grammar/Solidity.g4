@@ -659,7 +659,7 @@ expression returns [Expression expressionRet]
         $expressionRet.setLine($r.line);
     }
   | e10 = expression '(' fa = functionCallArguments ')'
-    { 
+    {
         $expressionRet = new FunctionCallExpression($e10.expressionRet, $fa.functionCallArgumentsRet);
         $expressionRet.setLine($e10.expressionRet.getLine());
     }

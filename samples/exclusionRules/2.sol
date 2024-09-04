@@ -17,5 +17,8 @@ contract MyInterface2 is MyInterface1 {
 
 
 contract MyContract is MyInterface1, MyInterface2 {
+  function bar(string memory s) external {
+    // Implementation of bar goes here
+  }
   // Functions and variables go here
 }
