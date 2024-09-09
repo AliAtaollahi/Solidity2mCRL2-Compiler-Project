@@ -21,7 +21,7 @@ uint256 constant INITIAL_SUPPLY = 1000 * 10**18;
 
 // Multiple Constants in a File
 uint256 constant DECIMALS = 18;
-uint256 constant INITIAL_SUPPLY = 1000000 * (10 ** DECIMALS);
+uint256 constant INITIAL_SUPPLY_ = 1000000 * (10 ** DECIMALS);
 string constant TOKEN_SYMBOL = "MTK";
 
 // Constant Using Another Constant

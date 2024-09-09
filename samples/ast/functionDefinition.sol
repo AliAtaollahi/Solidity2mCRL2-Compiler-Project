@@ -1,105 +1,94 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// Function with modifier invocation including parameters
-function withdraw(uint amount) public onlyAfter(block.timestamp + 1 days) {
-    require(amount <= balance, "Insufficient balance");
-    balance -= amount;
-}
+    // Withdraw function with a unique name
+    function withdrawAmount(uint amount) public onlyOwner {
+        require(amount <= balance, "Insufficient balance");
+        balance -= amount;
+    }
 
-// Simple public function with return value
-function getValue() public returns (uint) {
-    return 42;
-}
+    // A public function returning a constant value
+    function getFixedValue() public returns (uint) {
+        uint localVariable1 = value1 * 2; // Local variable based on value1
+        uint localVariable2 = value2 + 10; // Local variable based on value2
+        return 42;
+    }
 
-function _burn(address from, uint256 amount) internal;
+    // An external function to get the current value of the state variable `value`
+    function getStoredValue() external view returns (uint, uint) {
+        return (value1, value2);
+    }
 
-// Private function without return value
-function setValue(uint newValue) private {
-    value = newValue;
-}
+    // Set value with onlyOwner modifier
+    function setNewValue(uint newValue) public onlyOwner {
+        value = newValue;
+    }
 
-// Internal function with a modifier
-function updateValue(uint newValue) internal onlyOwner {
-    value = newValue;
-}
+    // Fallback function to handle Ether payments
+    fallback() external payable {
+        emit Received(msg.sender, msg.value);
+    }
 
-// External function with view state mutability
-function getValue() external view returns (uint) {
-    return value;
-}
+    // Receive function for receiving Ether
+    receive() external payable {
+        balance += msg.value;
+    }
 
-// Constructor with internal visibility and parameters
-constructor(uint initialValue) internal {
-    value = initialValue;
-}
+    // Function with single modifier invocation
+    function updateValueOwner(uint newValue) public onlyOwner {
+        value = newValue;
+    }
 
-// Fallback function with payable state mutability
-fallback() external payable {
-    emit Received(msg.sender, msg.value);
-}
+    // Function with multiple modifier invocations
+    function transferAmount(address recipient, uint amount) public nonReentrant whenNotPaused {
+        _transfer(msg.sender, recipient, amount);
+    }
 
-// Receive function for receiving Ether
-receive() external payable {
-    balance += msg.value;
-}
+    // Override transferOwnership function with a unique name
+    function changeOwnership(address newOwner) public onlyOwner {
+        require(newOwner != address(0), "Invalid address");
+        owner = newOwner;
+    }
 
-// Function with single modifier invocation
-function setValue(uint newValue) public onlyOwner {
-    value = newValue;
-}
+    // Withdraw function with an override specifier and a unique name
+    function withdrawOverride(uint amount) public override(MyBaseContract) {
+        require(amount <= balance, "Insufficient balance");
+        balance -= amount;
+    }
 
-// Function with multiple modifier invocations
-function transfer(address recipient, uint amount) public nonReentrant whenNotPaused {
-    _transfer(msg.sender, recipient, amount);
-}
+    // Mint function with override and multiple base contracts
+    function mintTokens(address to, uint256 amount) public override(MyBaseContractA, MyBaseContractB) {
+        _mint(to, amount);
+    }
 
-// Function with override specifier without parentheses
-function transferOwnership(address newOwner) public override {
-    require(newOwner != address(0), "Invalid address");
-    owner = newOwner;
-}
+    // Burn function with modifier and override
+    function burnTokens(uint256 amount) public onlyOwner override(MyBaseContract) {
+        _burn(msg.sender, amount);
+    }
 
-// Function with override specifier with a single base contract
-function withdraw(uint amount) public override(MyBaseContract) {
-    require(amount <= balance, "Insufficient balance");
-    balance -= amount;
-}
+    // Constructor with a modifier invocation
+    // Note: Constructors can't have modifiers in Solidity 0.8+, so the `onlyOwner` modifier is removed.
 
-// Function with override specifier and multiple base contracts
-function mint(address to, uint256 amount) public override(MyBaseContractA, MyBaseContractB) {
-    _mint(to, amount);
-}
+    // Function with complex modifier invocation and override
+    function updateStateComplex(uint newValue) public whenNotPaused onlyOwner override(MyBaseContractA, MyBaseContractB) {
+        value = newValue;
+    }
 
-// Function with modifier invocation and override specifier
-function burn(uint256 amount) public onlyOwner override(MyBaseContract) {
-    _burn(msg.sender, amount);
-}
+    // Function with a modifier invocation passing an expression
+    function setDailyLimitWithTime(uint newLimit) public onlyAfter(lastCallTime + 1 days) {
+        dailyLimit = newLimit;
+        lastCallTime = block.timestamp; // Update timestamp after calling
+    }
 
-// Constructor with modifier invocation
-constructor(uint initialValue) public onlyOwner {
-    value = initialValue;
-}
+    // Additional internal functions for completeness
+    function _transfer(address from, address to, uint amount) internal {
+        // Transfer logic here
+    }
 
-// Function with complex modifier invocation and override
-function updateState(uint newValue) public whenNotPaused onlyOwner override(MyBaseContractA, MyBaseContractB) {
-    value = newValue;
-}
+    function _mint(address to, uint256 amount) internal {
+        // Mint logic here
+    }
 
-// Function with modifier invocation passing an expression
-function setDailyLimit(uint newLimit) public onlyAfter(block.timestamp + 1 days) {
-    dailyLimit = newLimit;
-}
-
-// Additional internal functions for completeness
-function _transfer(address from, address to, uint amount) internal {
-// Transfer logic here
-}
-
-function _mint(address to, uint256 amount) internal {
-// Mint logic here
-}
-
-function _burn(address from, uint256 amount) internal {
-// Burn logic here
-}
+    function _burn(address from, uint256 amount) internal {
+        // Burn logic here
+    }

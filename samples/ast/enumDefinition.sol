@@ -31,3 +31,5 @@ pragma solidity ^0.8.0;
         SECOND_VALUE,
         third_value
     }
+    error InsufficientBalance(uint256 requested, uint256 available);
+
