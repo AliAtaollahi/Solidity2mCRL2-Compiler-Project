@@ -561,7 +561,7 @@ emitStatement
 ///imp rule
 revertStatement returns [RevertStatement revertStatementRet]
   : r = 'revert' fc = functionCall ';'
-    { $revertStatementRet = new RevertStatement($fc.functionCallRet); };
+    { $revertStatementRet = new RevertStatement($fc.functionCallExpressionRet); };
 
 ///imp rule
 variableDeclarationStatement returns [VariableDeclarationStatement variableDeclarationStatementRet]
@@ -801,9 +801,9 @@ functionCallArguments returns [FunctionCallArguments functionCallArgumentsRet]
   | ( e = expressionList { $functionCallArgumentsRet = $e.expressionListRet; } )?;
 
 ///imp rule
-functionCall returns [FunctionCall functionCallRet]
+functionCall returns [FunctionCallExpression functionCallExpressionRet]
   : e = expression '(' f = functionCallArguments ')'
-    { $functionCallRet = new FunctionCall($e.expressionRet, $f.functionCallArgumentsRet); };
+    { $functionCallExpressionRet = new FunctionCallExpression($e.expressionRet, $f.functionCallArgumentsRet); };
 
 //this rule is not included
 assemblyBlock

@@ -45,6 +45,10 @@ public class SymbolTable {
         this.items = new HashMap<>();
     }
 
+    public static Stack<SymbolTable> getStack() {
+        return stack;
+    }
+
     public void put(SymbolTableItem item) throws ItemAlreadyExistsException {
         if (items.containsKey(item.getKey()))
             throw new ItemAlreadyExistsException();
@@ -68,4 +72,7 @@ public class SymbolTable {
         throw new ItemNotFoundException();
     }
 
+    public int getItemsSize() {
+        return this.items.size();
+    }
 }

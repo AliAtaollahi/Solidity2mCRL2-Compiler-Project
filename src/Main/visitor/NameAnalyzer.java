@@ -26,7 +26,7 @@ import main.symbolTable.items.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class NameAnalyser extends Visitor<Void> {
+public class NameAnalyzer extends Visitor<Void> {
     @Override
     public Void visit(SourceUnit sourceUnit) {
         SymbolTable.push(new SymbolTable());
@@ -129,30 +129,53 @@ public class NameAnalyser extends Visitor<Void> {
 
     @Override
     public Void visit(ContractDefinition contractDefinition) {
-        // Visit the contract name
-        if (contractDefinition.getName() != null) {
-            contractDefinition.getName().accept(this);
+        // Get the contract name
+        Identifier contractNameId = contractDefinition.getName();
+
+        // Create a ContractSymbolTableItem for the contract
+        ContractSymbolTableItem contractSymbolTableItem = new ContractSymbolTableItem(contractNameId.getName());
+
+        // Try to insert the contract symbol into the current symbol table
+        try {
+            SymbolTable.top.put(contractSymbolTableItem);
+        } catch (ItemAlreadyExistsException e) {
+            // If the contract is already defined in the current scope, report an error
+            System.out.println("Error: Contract " + contractNameId.getName() + " already declared in the current scope.");
+            return null;
         }
 
-        // Visit each inheritance specifier in the list
+        // Create a new symbol table for the contract and link it to the symbol table item
+        SymbolTable contractSymbolTable = new SymbolTable(SymbolTable.top);
+        contractSymbolTableItem.setContractSymbolTable(contractSymbolTable);  // Link symbol table to the contract
+        SymbolTable.push(contractSymbolTable);  // Push the new symbol table for the contract scope
+
+        // Visit all inheritance specifiers and add them to the contract symbol table item
         for (InheritanceSpecifier inheritanceSpecifier : contractDefinition.getInheritanceSpecifiers()) {
             if (inheritanceSpecifier != null) {
-                inheritanceSpecifier.accept(this);
+                inheritanceSpecifier.accept(this);  // Visit the inheritance specifier
+                contractSymbolTableItem.addInheritanceSpecifier(inheritanceSpecifier);  // Add to contract symbol
             }
         }
 
-        // Visit each contract part in the list
+        // Visit all contract parts (functions, variables, etc.)
         ArrayList<ContractPart> cleanContractParts = new ArrayList<>();
         for (ContractPart contractPart : contractDefinition.getContractParts()) {
             if (contractPart != null) {
                 cleanContractParts.add(contractPart);
-                contractPart.accept(this);
+                contractPart.accept(this);  // Visit the contract part
             }
         }
+
+        // Update the contract definition with the clean list of contract parts
         contractDefinition.setContractParts(cleanContractParts);
 
-        return null;  // Since the method return type is Void
+        // Pop the symbol table after finishing the contract scope
+        SymbolTable.pop();
+
+        return null;
     }
+
+
 
     @Override
     public Void visit(EnumDefinition enumDefinition) {
@@ -684,13 +707,30 @@ public class NameAnalyser extends Visitor<Void> {
             functionCallExpression.getFunctionName().accept(this);
         }
 
-        // Visit the arguments
+        // Visit the arguments (FunctionCallArguments)
         if (functionCallExpression.getArgs() != null) {
             functionCallExpression.getArgs().accept(this);
         }
 
-        return null;  // Return null as the specific implementation might need to handle different return types
+        // Create a FunctionCallSymbolTableItem for the function call
+        FunctionCallSymbolTableItem functionCallSymbolTableItem = new FunctionCallSymbolTableItem(
+                functionCallExpression.getFunctionName(),
+                functionCallExpression.getArgs(),
+                SymbolTable.top.getItemsSize()
+        );
+
+        // Try to insert the function call into the current symbol table
+        try {
+            SymbolTable.top.put(functionCallSymbolTableItem);
+        } catch (ItemAlreadyExistsException e) {
+            // If the function call is already defined in the current scope, report an error
+            System.out.println("Error: Function call to " + functionCallExpression.getFunctionName().toString() + " already declared in the current scope. in line " + functionCallExpression.getLine() + " .");
+            return null;
+        }
+
+        return null;  // Since the method return type is Void
     }
+
 
     @Override
     public Void visit(StructInitializationExpression structInitializationExpression) {
@@ -955,21 +995,6 @@ public class NameAnalyser extends Visitor<Void> {
     }
 
     @Override
-    public Void visit(FunctionCall functionCall) {
-        // Visit the function (Expression) of the FunctionCall
-        if (functionCall.getFunction() != null) {
-            functionCall.getFunction().accept(this);
-        }
-
-        // Visit the arguments (FunctionCallArguments) of the FunctionCall
-        if (functionCall.getArgs() != null) {
-            functionCall.getArgs().accept(this);
-        }
-
-        return null;
-    }
-
-    @Override
     public Void visit(RevertStatement revertStatement) {
         // Visit the functionCall (FunctionCall) inside the RevertStatement
         if (revertStatement.getFunctionCall() != null) {
@@ -1211,6 +1236,22 @@ public class NameAnalyser extends Visitor<Void> {
             modifierDefinition.getModifier().accept(this);
         }
 
+        // Create a ModifierSymbolTableItem for the modifier
+        ModifierSymbolTableItem modifierSymbolTableItem = new ModifierSymbolTableItem(
+                modifierDefinition.getIdentifier().getName(),   // Get the modifier name
+                modifierDefinition.getParameterList(),          // Parameter list of the modifier
+                modifierDefinition.getScope()                   // Scope of the modifier
+        );
+
+        // Try to insert the modifier symbol into the current symbol table
+        try {
+            SymbolTable.top.put(modifierSymbolTableItem);
+        } catch (ItemAlreadyExistsException e) {
+            // If the modifier is already defined in the current scope, report an error
+            System.out.println("Error: Modifier " + modifierDefinition.getIdentifier().getName() + " already declared in the current scope.");
+            return null;
+        }
+
         // Visit the scope (Block) inside the ModifierDefinition
         if (modifierDefinition.getScope() != null) {
             modifierDefinition.getScope().accept(this);
@@ -1218,6 +1259,7 @@ public class NameAnalyser extends Visitor<Void> {
 
         return null;
     }
+
 
     @Override
     public Void visit(StateVariableDeclaration stateVariableDeclaration) {
@@ -1233,9 +1275,20 @@ public class NameAnalyser extends Visitor<Void> {
             }
         }
 
-        // Visit the name (Identifier) inside the StateVariableDeclaration
-        if (stateVariableDeclaration.getName() != null) {
-            stateVariableDeclaration.getName().accept(this);
+        // Create a StateVariableSymbolTableItem for the state variable
+        StateVariableSymbolTableItem stateVariableSymbolTableItem = new StateVariableSymbolTableItem(
+                stateVariableDeclaration.getName().getName(),
+                stateVariableDeclaration.getType(),
+                stateVariableDeclaration.getValue()
+        );
+
+        // Try to insert the state variable symbol into the current symbol table
+        try {
+            SymbolTable.top.put(stateVariableSymbolTableItem);
+        } catch (ItemAlreadyExistsException e) {
+            // If the state variable is already defined in the current scope, report an error
+            System.out.println("Error: State variable " + stateVariableDeclaration.getName().getName() + " already declared in the current scope.");
+            return null;
         }
 
         // Visit the value (Expression) inside the StateVariableDeclaration
@@ -1243,8 +1296,9 @@ public class NameAnalyser extends Visitor<Void> {
             stateVariableDeclaration.getValue().accept(this);
         }
 
-        return null;
+        return null;  // Since the method return type is Void
     }
+
 
     @Override
     public Void visit(OtherFunctionDescriptors otherFunctionDescriptors) {

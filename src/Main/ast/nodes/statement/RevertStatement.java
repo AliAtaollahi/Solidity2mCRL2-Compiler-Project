@@ -1,15 +1,15 @@
 package main.ast.nodes.statement;
 
-import main.ast.nodes.declaration.utility.FunctionCall;
+import main.ast.nodes.expression.FunctionCallExpression;
 import main.visitor.IVisitor;
 
 import java.util.ArrayList;
 
 public class RevertStatement extends Statement {
-    private FunctionCall functionCall;
+    private FunctionCallExpression functionCallExpression;
 
-    public RevertStatement(FunctionCall functionCall) {
-        this.functionCall = functionCall;
+    public RevertStatement(FunctionCallExpression functionCall) {
+        this.functionCallExpression = functionCall;
     }
 
     @Override
@@ -17,11 +17,11 @@ public class RevertStatement extends Statement {
         return visitor.visit(this);
     }
 
-    public FunctionCall getFunctionCall() {
-        return functionCall;
+    public FunctionCallExpression getFunctionCall() {
+        return functionCallExpression;
     }
 
-    public void setFunctionCall(FunctionCall functionCall) {
-        this.functionCall = functionCall;
+    public void setFunctionCall(FunctionCallExpression functionCall) {
+        this.functionCallExpression = functionCall;
     }
 }

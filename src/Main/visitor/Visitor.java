@@ -341,11 +341,6 @@ public abstract class Visitor<T> implements IVisitor<T> {
     }
 
     @Override
-    public T visit(FunctionCall functionCall) {
-        return null;
-    }
-
-    @Override
     public T visit(RevertStatement revertStatement) {
         return null;
     }

@@ -21,6 +21,6 @@ public class StructSymbolTableItem extends SymbolTableItem {
     @Override
     public String getKey() {
         // Return a unique key for the variable, using its name
-        return name;
+        return "Struct_" + name;
     }
 }

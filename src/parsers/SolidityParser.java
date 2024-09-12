@@ -5850,7 +5850,7 @@ public class SolidityParser extends Parser {
 			((RevertStatementContext)_localctx).fc = functionCall();
 			setState(980);
 			match(T__1);
-			 ((RevertStatementContext)_localctx).revertStatementRet =  new RevertStatement(((RevertStatementContext)_localctx).fc.functionCallRet); 
+			 ((RevertStatementContext)_localctx).revertStatementRet =  new RevertStatement(((RevertStatementContext)_localctx).fc.functionCallExpressionRet); 
 			}
 		}
 		catch (RecognitionException re) {
@@ -7001,7 +7001,7 @@ public class SolidityParser extends Parser {
 						((ExpressionContext)_localctx).fa = functionCallArguments();
 						setState(1216);
 						match(T__23);
-						 
+
 						                  ((ExpressionContext)_localctx).expressionRet =  new FunctionCallExpression(((ExpressionContext)_localctx).e10.expressionRet, ((ExpressionContext)_localctx).fa.functionCallArgumentsRet);
 						                  _localctx.expressionRet.setLine(((ExpressionContext)_localctx).e10.expressionRet.getLine());
 						              
@@ -7513,7 +7513,7 @@ public class SolidityParser extends Parser {
 
 	@SuppressWarnings("CheckReturnValue")
 	public static class FunctionCallContext extends ParserRuleContext {
-		public FunctionCall functionCallRet;
+		public FunctionCallExpression functionCallExpressionRet;
 		public ExpressionContext e;
 		public FunctionCallArgumentsContext f;
 		public ExpressionContext expression() {
@@ -7555,7 +7555,7 @@ public class SolidityParser extends Parser {
 			((FunctionCallContext)_localctx).f = functionCallArguments();
 			setState(1299);
 			match(T__23);
-			 ((FunctionCallContext)_localctx).functionCallRet =  new FunctionCall(((FunctionCallContext)_localctx).e.expressionRet, ((FunctionCallContext)_localctx).f.functionCallArgumentsRet); 
+			 ((FunctionCallContext)_localctx).functionCallExpressionRet =  new FunctionCallExpression(((FunctionCallContext)_localctx).e.expressionRet, ((FunctionCallContext)_localctx).f.functionCallArgumentsRet); 
 			}
 		}
 		catch (RecognitionException re) {

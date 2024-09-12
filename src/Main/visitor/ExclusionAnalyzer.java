@@ -894,21 +894,6 @@ public class ExclusionAnalyzer extends Visitor<Void> {
     }
 
     @Override
-    public Void visit(FunctionCall functionCall) {
-        // Visit the function (Expression) of the FunctionCall
-        if (functionCall.getFunction() != null) {
-            functionCall.getFunction().accept(this);
-        }
-
-        // Visit the arguments (FunctionCallArguments) of the FunctionCall
-        if (functionCall.getArgs() != null) {
-            functionCall.getArgs().accept(this);
-        }
-
-        return null;
-    }
-
-    @Override
     public Void visit(RevertStatement revertStatement) {
         // Visit the functionCall (FunctionCall) inside the RevertStatement
         if (revertStatement.getFunctionCall() != null) {

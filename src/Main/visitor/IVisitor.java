@@ -136,8 +136,6 @@ public interface IVisitor<T> {
 
     T visit(ForStatement forStatement);
 
-    T visit(FunctionCall functionCall);
-
     T visit(RevertStatement revertStatement);
 
     T visit(IdentifierList identifierList);

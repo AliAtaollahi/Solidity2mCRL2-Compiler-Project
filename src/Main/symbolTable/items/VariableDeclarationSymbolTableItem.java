@@ -5,7 +5,7 @@ import main.ast.nodes.expression.Expression;  // For the initiation value
 import main.ast.nodes.expression.primary.Type;
 
 public class VariableDeclarationSymbolTableItem extends SymbolTableItem {
-    public static String START_KEY = "Var_";  // Prefix for variable keys
+    public static String START_KEY = "VarDeclaration_";  // Prefix for variable keys
     protected Type type;                      // Type of the variable
     protected Expression initiateValue;       // The initialization value of the variable
 
@@ -16,7 +16,7 @@ public class VariableDeclarationSymbolTableItem extends SymbolTableItem {
         this.initiateValue = null; // By default, no initial value
     }
 
-    // Generates the unique key for the variable in the format "Var_<name>"
+    // Generates the unique key for the variable in the format "VarDeclaration_<name>"
     @Override
     public String getKey() {
         return START_KEY + this.name;
