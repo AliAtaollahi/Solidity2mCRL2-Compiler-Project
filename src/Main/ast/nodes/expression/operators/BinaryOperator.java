@@ -59,4 +59,24 @@ public enum BinaryOperator {
         }
         throw new IllegalArgumentException("Unknown operator: " + symbol);
     }
+
+    // Method to check if the operator is arithmetic
+    public boolean isArithmeticOperator() {
+        return this == ADDITION || this == SUBTRACTION || this == MULTIPLICATION || this == DIVISION || this == MODULUS || this == EXPONENTIATION;
+    }
+
+    // Method to check if the operator is logical
+    public boolean isLogicalOperator() {
+        return this == LOGICAL_AND || this == LOGICAL_OR;
+    }
+
+    // Method to check if the operator is a comparison operator
+    public boolean isComparisonOperator() {
+        return this == LESS_THAN || this == GREATER_THAN || this == LESS_THAN_OR_EQUAL_TO || this == GREATER_THAN_OR_EQUAL_TO || this == EQUALITY || this == INEQUALITY;
+    }
+
+    // Method to check if the operator is a bitwise operator
+    public boolean isBitwiseOperator() {
+        return this == BITWISE_AND || this == BITWISE_OR || this == BITWISE_XOR || this == LEFT_SHIFT || this == RIGHT_SHIFT;
+    }
 }

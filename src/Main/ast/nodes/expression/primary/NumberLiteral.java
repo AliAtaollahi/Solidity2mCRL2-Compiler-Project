@@ -12,6 +12,10 @@ public class NumberLiteral extends PrimaryExpression {
         this.unit = unit;
     }
 
+    public NumberLiteral(String value) {
+        this.value = value;
+    }
+
     @Override
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);

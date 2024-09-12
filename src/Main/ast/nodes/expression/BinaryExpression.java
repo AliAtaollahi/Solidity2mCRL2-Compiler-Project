@@ -15,6 +15,10 @@ public class BinaryExpression extends Expression{
 
     }
 
+    public BinaryExpression() {
+
+    }
+
     @Override
     public <T> T accept(IVisitor<T> visitor){return visitor.visit(this);}
 

@@ -1,154 +1,163 @@
 pragma solidity ^0.8.0;
 
+contract OtherContract {
+    function someFunction() public pure returns (uint256) {
+        return 5; // Example value returned
+    }
+}
 
-    struct ExpressionExamples {
+contract ExpressionExamples {
 
-        // Postfix Increment and Decrement
-        uint256[true++] array0;
-        uint256[variableA++] array1;
-        uint256[variableB--] array2;
+    OtherContract contractInstance;
+    uint256 variableA;
+    uint256 variableB;
+    uint256[] myArray;
 
-        // Object Creation
-        uint256[new MyContract()] array3;
-
-        // Array Indexing
-        uint256[myArray[5]] array4;
-        uint256[(myArray[index])] array5;
-
-        // Array Slicing
-        uint256[myArray[1:4]] array6;
-        uint256[myArray[:3]] array7;
-        uint256[myArray[2:]] array8;
-
-        // Member Access
-        uint256[myStruct.memberVar] array9;
-        uint256[contractInstance.someFunction()] array10;
-
-        // Struct Initialization
-        uint256[MyStruct{key1: value1, key2: value2}] array11;
-
-        // Require Statement
-        uint256[require(x > 0, "x must be positive")] array12;
-
-        // Function Call
-        uint256[someFunction(1, 2, 3)] array13;
-
-        // Unary Operations
-        uint256[++variableC] array14;
-        uint256[--variableD] array15;
-        uint256[+variableE] array16;
-        uint256[-variableF] array17;
-        uint256[delete variableG] array18;
-        uint256[!variableH] array19;
-        uint256[~variableI] array20;
-
-        // Exponentiation
-        uint256[variableJ ** variableK] array21;
-
-        // Arithmetic Operations
-        uint256[variableL * variableM] array22;
-        uint256[variableN / variableO] array23;
-        uint256[variableP % variableQ] array24;
-        uint256[variableR + variableS] array25;
-        uint256[variableT - variableU] array26;
-
-        // Bitwise Operations
-        uint256[variableV << variableW] array27;
-        uint256[variableX >> variableY] array28;
-        uint256[variableZ & variableAA] array29;
-        uint256[variableBB ^ variableCC] array30;
-        uint256[variableDD | variableEE] array31;
-
-        // Comparison Operations
-        uint256[variableFF < variableGG] array32;
-        uint256[variableHH > variableII] array33;
-        uint256[variableJJ <= variableKK] array34;
-        uint256[variableLL >= variableMM] array35;
-
-        // Equality and Inequality
-        uint256[variableNN == variableOO] array36;
-        uint256[variablePP != variableQQ] array37;
-
-        // Logical Operations
-        uint256[variableRR && variableSS] array38;
-        uint256[variableTT || variableUU] array39;
-
-        // Ternary Operation
-        uint256[condition ? trueValue : falseValue] array40;
-
-        // Assignment Operations
-        uint256[variableVV = variableWW] array41;
-        uint256[variableXX += variableYY] array42;
-        uint256[variableZZ -= variableAAA] array43;
-        uint256[variableBBB *= variableCCC] array44;
-        uint256[variableDDD /= variableEEE] array45;
-        uint256[variableFFF %= variableGGG] array46;
-        uint256[variableHHH |= variableIII] array47;
-        uint256[variableJJJ ^= variableKKK] array48;
-        uint256[variableLLL &= variableMMM] array49;
-        uint256[variableNNN <<= variableOOO] array50;
-        uint256[variablePPP >>= variableQQQ] array51;
-
-        // Primary Expressions
-        uint256[true] array52;
-        uint256[123] array53;
-        uint256[0x1234] array54;
-        uint256["Hello, Solidity!"] array55;
-        uint256[someIdentifier] array56;
-        uint256[type(uint)] array57;
-        uint256[payable] array58;
-
-        // Tuple Expressions
-        uint256[(varA, varB, varC)] array59;
-        uint256[[elemX, elemY, elemZ]] array60;
-
-        // Function Call with Named Arguments
-        uint256[someFunction({arg1: valueA, arg2: valueB})] array61;
-
+    struct MyStruct {
+        uint256 key1;
+        uint256 key2;
     }
 
+    MyStruct myStruct;
+    uint256 x;
+    uint256 variableC;
+    uint256 variableD;
+    uint256 variableE;
+    uint256 variableF;
+    uint256 variableG;
+    bool variableH;
+    uint256 variableI;
+    uint256 variableJ;
+    uint256 variableK;
+    uint256 variableL;
+    uint256 variableM;
+    uint256 variableN;
+    uint256 variableO;
+    uint256 variableP;
+    uint256 variableQ;
+    uint256 variableR;
+    uint256 variableS;
+    uint256 variableT;
+    uint256 variableU;
+    uint256 variableV;
+    uint256 variableW;
+    uint256 variableX;
+    uint256 variableY;
+    uint256 variableZ;
+    uint256 variableAA;
+    uint256 variableBB;
+    uint256 variableCC;
+    uint256 variableDD;
+    uint256 variableEE;
+    uint256 variableFF;
+    uint256 variableGG;
+    uint256 variableHH;
+    uint256 variableII;
+    uint256 variableJJ;
+    uint256 variableKK;
+    uint256 variableLL;
+    uint256 variableMM;
+    uint256 variableNN;
+    uint256 variableOO;
+    uint256 variablePP;
+    uint256 variableQQ;
+    uint256 variableRR;
+    uint256 variableSS;
+    uint256 variableTT;
+    uint256 variableUU;
+    bool condition;
+    uint256 trueValue;
+    uint256 falseValue;
+    uint256 variableVV;
+    uint256 variableWW;
+    uint256 variableXX;
+    uint256 variableYY;
+    uint256 variableZZ;
+    uint256 variableAAA;
+    uint256 variableBBB;
+    uint256 variableCCC;
+    uint256 variableDDD;
+    uint256 variableEEE;
+    uint256 variableFFF;
+    uint256 variableGGG;
+    uint256 variableHHH;
+    uint256 variableIII;
+    uint256 variableJJJ;
+    uint256 variableKKK;
+    uint256 variableLLL;
+    uint256 variableMMM;
+    uint256 variableNNN;
+    uint256 variableOOO;
+    uint256 variablePPP;
+    uint256 variableQQQ;
+    uint256 someIdentifier;
 
-struct PrimaryExample {
-    // Boolean Literals
-    uint256[true] booleanTrueArray;
-    uint256[false] booleanFalseArray;
+    constructor() {
+        contractInstance = new OtherContract();
+    }
 
-    // Decimal Number Literals
-    uint256[123] decimalLiteralArray;
-    uint256[1_000_000] largeNumberArray;
+    function someFunction(uint256 a, uint256 b, uint256 c) public pure returns (uint256) {
+        return a + b + c;
+    }
 
-    // Hexadecimal Number Literal
-    uint256[0x1A2B] hexLiteralArray;
+    function example() public {
+        // Postfix/Prefix Increment and Decrement examples
+        uint256[] memory array1 = new uint256[](variableA++);
+        uint256[] memory array2 = new uint256[](variableB--);
 
-    // Hex Literal
-    uint256[hex"00112233445566778899AABBCCDDEEFF"] hexValueArray;
+        // Function Call from another contract
+        uint256[] memory array10 = new uint256[](contractInstance.someFunction());
 
-    // String Literals
-    uint256["Hello, Solidity!"] stringLiteralArray;
-    uint256['Solidity String'] singleQuotedArray;
+        // Struct Initialization
+        MyStruct memory newStruct = MyStruct({key1: 10, key2: 20});
+        uint256[] memory array11 = new uint256[](newStruct.key1 + newStruct.key2); // Use struct members in the array size
 
-    // Identifier
-    uint256[someVariable] identifierArray;
+        // Other previously mentioned operations
 
-    // Type Keyword
-    uint256[type(uint256).max] typeKeywordArray;
+        uint256[] memory array13 = new uint256[](someFunction(1, 2, 3));
 
-    // Payable Keyword
-    uint256[uint256(uint160(payable(0x1234567890abcdef1234567890abcdef12345678)))] payableKeywordArray;
+        // Unary Operations
+        uint256[] memory array14 = new uint256[](++variableC);
+        uint256[] memory array15 = new uint256[](--variableD);
+        uint256[] memory array16 = new uint256[](+variableE);
+        uint256[] memory array17 = new uint256[](-variableF);
+        delete variableG;
+        uint256[] memory array19 = new uint256[](variableH ? 1 : 0); // Using boolean condition
+        uint256[] memory array20 = new uint256[](~variableI);
 
-    // Tuple Expressions
-    uint256[(,value1, value2, value3)] tupleExpressionExample1;
-    uint256[(10, 20, 30)] tupleExpressionExample2;
-    uint256[(x, y, z)] tupleExpressionExample3;
-    uint256[(a + b, c * d, e - f)] tupleExpressionExample4;
-    uint256[(true, false, true)] tupleExpressionExample5;
+        // Exponentiation
+        uint256[] memory array21 = new uint256[](variableJ ** variableK);
 
-    uint256[[element1, element2, element3]] tupleArrayExample1;
-    uint256[[100, 200, 300]] tupleArrayExample2;
-    uint256[[p, q, r]] tupleArrayExample3;
-    uint256[[g / h, i % j, k ** l]] tupleArrayExample4;
-    uint256[[address(0x123), address(0x456), address(0x789)]] tupleArrayExample5;
+        // Arithmetic Operations
+        uint256[] memory array22 = new uint256[](variableL * variableM);
+        uint256[] memory array23 = new uint256[](variableN / variableO);
+        uint256[] memory array24 = new uint256[](variableP % variableQ);
+        uint256[] memory array25 = new uint256[](variableR + variableS);
+        uint256[] memory array26 = new uint256[](variableT - variableU);
 
-    // Type Name (simplified use in array size context)
-    uint256[uint256(42)] typeNameExampleArray;
+        // Bitwise Operations
+        uint256[] memory array27 = new uint256[](variableV << variableW);
+        uint256[] memory array28 = new uint256[](variableX >> variableY);
+        uint256[] memory array29 = new uint256[](variableZ & variableAA);
+        uint256[] memory array30 = new uint256[](variableBB ^ variableCC);
+        uint256[] memory array31 = new uint256[](variableDD | variableEE);
+
+        // Comparison Operations
+        uint256[] memory array32 = new uint256[](variableFF < variableGG ? 1 : 0);
+        uint256[] memory array33 = new uint256[](variableHH > variableII ? 1 : 0);
+
+        // Equality and Inequality
+        uint256[] memory array36 = new uint256[](variableNN == variableOO ? 1 : 0);
+        uint256[] memory array37 = new uint256[](variablePP != variableQQ ? 1 : 0);
+
+        // Logical Operations
+        uint256[] memory array38 = new uint256[](variableRR && variableSS ? 1 : 0);
+        uint256[] memory array39 = new uint256[](variableTT || variableUU ? 1 : 0);
+
+        // Ternary Operation
+        uint256[] memory array40 = new uint256[](condition ? trueValue : falseValue);
+
+        // Assignment Operations (They return a value but cannot be used in array size)
+        uint256[] memory array41 = new uint256[](variableVV = variableWW); // Assignment returns value of RHS.
+    }
 }

@@ -26,6 +26,7 @@ public class Solidity {
         nameAnalyzer.visit(sourceUnit);
         SymbolTable.root.hashCode();
 
+        System.out.println();
         ExclusionAnalyzer exclusionAnalyzer = new ExclusionAnalyzer();
         exclusionAnalyzer.visit(sourceUnit);
     }

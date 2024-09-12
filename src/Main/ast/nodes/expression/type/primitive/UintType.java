@@ -7,6 +7,7 @@ public class UintType extends ElementaryTypeName {
     public UintType(String fullTypeName) {
         this.numberOfBits = fullTypeName.replaceAll("\\D+", "");
     }
+    public UintType() {}
     @Override
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);

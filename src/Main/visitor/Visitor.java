@@ -8,10 +8,7 @@ import main.ast.nodes.expression.modifier.ModifierInvocation;
 import main.ast.nodes.expression.modifier.OtherModifers;
 import main.ast.nodes.expression.modifier.OverrideSpecifier;
 import main.ast.nodes.expression.primary.*;
-import main.ast.nodes.expression.type.AddressPayable;
-import main.ast.nodes.expression.type.FunctionTypeName;
-import main.ast.nodes.expression.type.Mapping;
-import main.ast.nodes.expression.type.UserDefinedTypeName;
+import main.ast.nodes.expression.type.*;
 import main.ast.nodes.expression.type.primitive.*;
 import main.ast.nodes.expression.value.EnumValue;
 import main.ast.nodes.expression.value.ImportPath;
@@ -407,6 +404,10 @@ public abstract class Visitor<T> implements IVisitor<T> {
 
     @Override
     public T visit(OtherFunctionDescriptors otherFunctionDescriptors) {
+        return null;
+    }
+    @Override
+    public T visit(TupleType tupleType) {
         return null;
     }
 }

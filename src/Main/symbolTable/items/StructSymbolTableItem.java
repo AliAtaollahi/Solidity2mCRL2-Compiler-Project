@@ -23,4 +23,5 @@ public class StructSymbolTableItem extends SymbolTableItem {
         // Return a unique key for the variable, using its name
         return "Struct_" + name;
     }
+
 }

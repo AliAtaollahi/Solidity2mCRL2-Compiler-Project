@@ -10,7 +10,7 @@ import main.visitor.IVisitor;
 public class Parameter extends Declaration {
     private Type type;
     private StorageLocation storageLocation;
-    Identifier identifier;
+    private Identifier identifier;
 
     public Parameter(Type type, String storageLocation) {
         this.type = type;
@@ -43,6 +43,6 @@ public class Parameter extends Declaration {
     }
 
     public Identifier getIdentifier() {
-        return identifier;
+        return this.identifier;
     }
 }

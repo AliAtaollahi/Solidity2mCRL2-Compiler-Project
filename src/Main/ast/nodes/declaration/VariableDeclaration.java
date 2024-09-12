@@ -3,6 +3,7 @@ package main.ast.nodes.declaration;
 import main.ast.nodes.declaration.utility.VariableList;
 import main.ast.nodes.expression.primary.Identifier;
 import main.ast.nodes.expression.primary.Type;
+import main.ast.nodes.expression.type.primitive.UintType;
 import main.ast.nodes.expression.value.StorageLocation;
 import main.visitor.IVisitor;
 
@@ -15,6 +16,10 @@ public class VariableDeclaration extends VariableList {
         this.variableName = variableName;
         this.variableType = type;
         this.storageLocation = new StorageLocation(storageLocation);
+    }
+
+    public VariableDeclaration() {
+
     }
 
     public Identifier getVariableName() {
