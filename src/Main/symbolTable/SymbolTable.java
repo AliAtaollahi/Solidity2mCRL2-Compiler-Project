@@ -285,20 +285,49 @@ public class SymbolTable {
         return argumentType.getClass().equals(parameterType.getClass());
     }
 
-    public ContractDefinitionSymbolTableItem findFirstContractDefinition(Expression it) throws ItemNotFoundException {
+    public ContractDefinitionSymbolTableItem findFirstContractDefinition(Expression it, SymbolTable currentSymbolTable) throws ItemNotFoundException {
+
         Set<SymbolTable> visitedSymbolTables = new HashSet<>();
-        SymbolTable currentSymbolTable = this;
+        Boolean isChain = !(((AccessExpression)it).getMaster() instanceof Identifier);
 
         Identifier member = ((AccessExpression)it).getMember();
-        Identifier master = (Identifier)((AccessExpression)it).getMaster();
-        currentSymbolTable = currentSymbolTable.pre;
-        for (SymbolTableItem item : currentSymbolTable.items.values()) {
-            if (item instanceof StateVariableSymbolTableItem) {
-                StateVariableSymbolTableItem stateVariableSymbolTableItem = (StateVariableSymbolTableItem) item;
-                if(master.getName().equals(stateVariableSymbolTableItem.getVariableName())) {
-                    return findContractDefinition(((UserDefinedTypeName)stateVariableSymbolTableItem.getType()).getTypeChain().get(0).getName());
+        Identifier master = (!isChain) ? (Identifier)((AccessExpression)it).getMaster() : (Identifier)(((AccessExpression)((AccessExpression)it).getMaster()).getMember());
+
+        if (!isChain) {
+            for (SymbolTableItem item : currentSymbolTable.items.values()) {
+                if (item instanceof StateVariableSymbolTableItem) {
+                    StateVariableSymbolTableItem stateVariableSymbolTableItem = (StateVariableSymbolTableItem) item;
+                    if (master.getName().equals(stateVariableSymbolTableItem.getVariableName())) {
+                        return findContractDefinition(((UserDefinedTypeName) stateVariableSymbolTableItem.getType()).getTypeChain().get(0).getName(), currentSymbolTable);
+                    }
                 }
             }
+        } else {
+            Expression it2 = ((AccessExpression)it).getMaster();
+            while (!(((AccessExpression)it2).getMaster() instanceof Identifier)) {
+                it2 = ((AccessExpression) it2).getMaster();
+            }
+            String currentName = ((Identifier) ((AccessExpression) it2).getMember()).getName();
+
+            while (!(currentName.equals(member.getName()))) {
+                ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem = null;
+                for (SymbolTableItem item : currentSymbolTable.items.values()) {
+
+                    if (item instanceof StateVariableSymbolTableItem) {
+                        StateVariableSymbolTableItem stateVariableSymbolTableItem = (StateVariableSymbolTableItem) item;
+                        if (((Identifier) ((AccessExpression) it2).getMaster()).getName().equals(stateVariableSymbolTableItem.getVariableName())) {
+                            contractDefinitionSymbolTableItem = findContractDefinition(((UserDefinedTypeName) stateVariableSymbolTableItem.getType()).getTypeChain().get(0).getName(), currentSymbolTable);
+                            break;
+                        }
+                    }
+                }
+                Expression it3 = it;
+                while (it3 instanceof AccessExpression && !((AccessExpression)((AccessExpression)it3).getMaster()).getMember().getName().equals(currentName)){
+                    it3 = ((AccessExpression)it3).getMaster();
+                }
+                currentName = (it3 instanceof AccessExpression) ? ((AccessExpression) it3).getMember().getName() : ((Identifier)it3).getName();
+            }
+            System.out.println();
         }
 
         throw new ItemNotFoundException();
@@ -307,10 +336,8 @@ public class SymbolTable {
 
 
 
-    public ContractDefinitionSymbolTableItem findContractDefinition(String contractName) throws ItemNotFoundException {
+    public ContractDefinitionSymbolTableItem findContractDefinition(String contractName, SymbolTable currentSymbolTable) throws ItemNotFoundException {
         Set<SymbolTable> visitedSymbolTables = new HashSet<>();
-        SymbolTable currentSymbolTable = this;
-
         while (currentSymbolTable != null && !visitedSymbolTables.contains(currentSymbolTable)) {
             visitedSymbolTables.add(currentSymbolTable);
 

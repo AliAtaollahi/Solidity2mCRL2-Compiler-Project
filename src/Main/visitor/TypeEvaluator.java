@@ -209,7 +209,8 @@ public class TypeEvaluator extends Visitor<Type> {
 
         ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem = null;
         try {
-            contractDefinitionSymbolTableItem = symbolTable.findFirstContractDefinition(accessExpression);
+            contractDefinitionSymbolTableItem = symbolTable.findFirstContractDefinition(accessExpression, this.symbolTable.pre);
+            System.out.println();
         } catch (ItemNotFoundException e) {
             throw new RuntimeException(e);
         }
