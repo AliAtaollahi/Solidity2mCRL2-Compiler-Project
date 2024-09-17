@@ -10,7 +10,13 @@ library Math {
 
 contract AllFunctionCallExpressions {
 
-    // A struct definition
+    // A struct definition for Deposit
+    struct Deposit {
+        uint amount;
+        address depositor;
+    }
+
+    // A struct definition for MyStruct
     struct MyStruct {
         uint x;
         uint y;
@@ -79,11 +85,11 @@ contract AllFunctionCallExpressions {
         // 10. Calling a function and using its return value in an expression
         uint result6 = add(getValue(), 100);
 
-        // 11. Calling a function with Ether transfer
-        deposit{value: 1 ether}();
+        // 11. Creating a Deposit struct instead of using a function
+        Deposit memory newDeposit = Deposit(1 ether, msg.sender);
 
         // 12. Calling a function via interface
-        IMyInterface(contractAddress).myFunction(42);
+        // IMyInterface(contractAddress).myFunction(42);
 
         // 13. Calling a function via `require`
         require(isEven(4), "Number must be even");
@@ -91,17 +97,16 @@ contract AllFunctionCallExpressions {
         // 14. Unpacking multiple returns from a function call
         (uint x, uint y) = getMultipleValues();
 
+        MyStruct memory sss = MyStruct(x, y);
+
         // 15. Library function call using 'using for'
-        uint result7 = 5.add(10);
+//        uint result7 = 5.add(10);
     }
 
     // A function to check if a number is even
     function isEven(uint number) public pure returns (bool) {
         return number % 2 == 0;
     }
-
-    // Function to deposit Ether
-    function deposit() public payable {}
 
     // Contract constructor
     constructor(uint _value) {}

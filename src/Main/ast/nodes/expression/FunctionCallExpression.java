@@ -17,7 +17,7 @@ public class FunctionCallExpression extends Expression{
     public <T> T accept(IVisitor<T> visitor){return visitor.visit(this);}
 
     public Expression getFunctionName() {
-        return functionName;
+        return this.functionName;
     }
 
     public void setFunctionName(Expression functionName) {

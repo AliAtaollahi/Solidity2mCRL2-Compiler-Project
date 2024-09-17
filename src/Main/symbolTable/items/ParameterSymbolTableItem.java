@@ -2,6 +2,7 @@ package main.symbolTable.items;
 
 import main.ast.nodes.expression.primary.Type;
 import main.ast.nodes.expression.value.StorageLocation;
+import main.visitor.IVisitor;
 
 public class ParameterSymbolTableItem extends SymbolTableItem {
     private String parameterName;
@@ -29,5 +30,10 @@ public class ParameterSymbolTableItem extends SymbolTableItem {
 
     public StorageLocation getStorageLocation() {
         return storageLocation;
+    }
+
+    @Override
+    public <T> T accept(IVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

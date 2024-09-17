@@ -14,6 +14,7 @@ import main.ast.nodes.expression.value.EnumValue;
 import main.ast.nodes.expression.value.ImportPath;
 import main.ast.nodes.expression.value.StorageLocation;
 import main.ast.nodes.statement.*;
+import main.symbolTable.items.*;
 
 public abstract class Visitor<T> implements IVisitor<T> {
     @Override
@@ -406,8 +407,94 @@ public abstract class Visitor<T> implements IVisitor<T> {
     public T visit(OtherFunctionDescriptors otherFunctionDescriptors) {
         return null;
     }
+
     @Override
     public T visit(TupleType tupleType) {
+        return null;
+    }
+
+    @Override
+    public T visit(ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(CustomErrorSymbolTableItem customErrorSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(EnumDefinitionSymbolTableItem enumDefinitionSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(EnumValueSymbolTableItem enumValueSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(FileLevelConstantSymbolTableItem fileLevelConstantSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(FunctionCallSymbolTableItem functionCallSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(VariantTypeVariableDeclarationSymbolTableItem variantTypeVariableDeclarationSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(VariableDeclarationSymbolTableItem variableDeclarationSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(UsingForSymbolTableItem usingForSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(StructDefinitionSymbolTableItem structDefinitionSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(StateVariableSymbolTableItem stateVariableSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(PrimaryExpressionSymbolTableItem primaryExpressionSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(ParameterSymbolTableItem parameterSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(ModifierDefinitionSymbolTableItem modifierDefinitionSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem) {
+        return null;
+    }
+
+    @Override
+    public T visit(Expression expression){
+        return null;
+    }
+
+    @Override
+    public T visit(NoType noType){
         return null;
     }
 }

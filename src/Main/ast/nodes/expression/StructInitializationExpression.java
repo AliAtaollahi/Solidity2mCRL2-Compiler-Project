@@ -5,6 +5,7 @@ import main.ast.nodes.declaration.utility.NameValueList;
 import main.visitor.IVisitor;
 
 public class StructInitializationExpression extends Expression{
+    public static String START_KEY = "Struct_";
     private Expression name;
     private NameValueList nameValueList;
 

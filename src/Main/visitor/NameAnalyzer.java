@@ -131,9 +131,15 @@ public class NameAnalyzer extends Visitor<Void> {
     public Void visit(ContractDefinition contractDefinition) {
         // Get the contract name
         Identifier contractNameId = contractDefinition.getName();
+        UserDefinedTypeName type = new UserDefinedTypeName();
+        type.addChainRing(contractDefinition.getName().getName());
+        type.setLine(contractDefinition.getName().getLine());
 
         // Create a ContractSymbolTableItem for the contract
-        ContractSymbolTableItem contractSymbolTableItem = new ContractSymbolTableItem(contractNameId.getName());
+        ContractDefinitionSymbolTableItem contractSymbolTableItem = new ContractDefinitionSymbolTableItem(
+                contractNameId.getName(),
+                type
+        );
 
         // Try to insert the contract symbol into the current symbol table
         try {
@@ -181,7 +187,7 @@ public class NameAnalyzer extends Visitor<Void> {
     public Void visit(EnumDefinition enumDefinition) {
         Identifier enumNameId = enumDefinition.getName();
 
-        EnumSymbolTableItem enumSymbolTableItem = new EnumSymbolTableItem(enumNameId.getName());
+        EnumDefinitionSymbolTableItem enumSymbolTableItem = new EnumDefinitionSymbolTableItem(enumNameId.getName());
 
         try {
             SymbolTable.top.put(enumSymbolTableItem);
@@ -216,8 +222,11 @@ public class NameAnalyzer extends Visitor<Void> {
     @Override
     public Void visit(StructDefinition structDefinition) {
         Identifier structNameId = structDefinition.getNameId();
+        UserDefinedTypeName type = new UserDefinedTypeName();
+        type.addChainRing(structNameId.getName());
+        type.setLine(structDefinition.getLine());
 
-        StructSymbolTableItem structSymbolTableItem = new StructSymbolTableItem(structNameId.getName());
+        StructDefinitionSymbolTableItem structSymbolTableItem = new StructDefinitionSymbolTableItem(structNameId.getName(), type);
 
         try {
             SymbolTable.top.put(structSymbolTableItem);
@@ -329,7 +338,7 @@ public class NameAnalyzer extends Visitor<Void> {
                 ((OtherFunctionDescriptors) functionDescriptor).getName();
 
         // Create FunctionSymbolTableItem
-        FunctionSymbolTableItem functionSymbolTableItem = new FunctionSymbolTableItem(functionName);
+        FunctionDefinitionSymbolTableItem functionSymbolTableItem = new FunctionDefinitionSymbolTableItem(functionName);
 
         // Store the function's modifiers in the symbol table item
         if (functionDefinition.getModifierList() != null) {
@@ -339,6 +348,11 @@ public class NameAnalyzer extends Visitor<Void> {
         // Store the return parameters in the symbol table item
         if (functionDefinition.getReturnParameterList() != null) {
             functionSymbolTableItem.setReturnParameterList(functionDefinition.getReturnParameterList());
+        }
+
+        // Store the return parameters in the symbol table item
+        if (functionDefinition.getScope() != null) {
+            functionSymbolTableItem.setScope(functionDefinition.getScope());
         }
 
         // Add function to symbol table
@@ -716,7 +730,8 @@ public class NameAnalyzer extends Visitor<Void> {
         FunctionCallSymbolTableItem functionCallSymbolTableItem = new FunctionCallSymbolTableItem(
                 functionCallExpression.getFunctionName(),
                 functionCallExpression.getArgs(),
-                SymbolTable.top.getItemsSize()
+                SymbolTable.top.getItemsSize(),
+                SymbolTable.top
         );
 
         // Try to insert the function call into the current symbol table
@@ -1221,44 +1236,59 @@ public class NameAnalyzer extends Visitor<Void> {
 
     @Override
     public Void visit(ModifierDefinition modifierDefinition) {
-        // Visit the identifier (Identifier) inside the ModifierDefinition
-        if (modifierDefinition.getIdentifier() != null) {
-            modifierDefinition.getIdentifier().accept(this);
-        }
-
-        // Visit the parameterList (ParameterList) inside the ModifierDefinition
-        if (modifierDefinition.getParameterList() != null) {
-            modifierDefinition.getParameterList().accept(this);
-        }
-
-        // Visit the modifier (Modifier) inside the ModifierDefinition
-        if (modifierDefinition.getModifier() != null) {
-            modifierDefinition.getModifier().accept(this);
-        }
-
-        // Create a ModifierSymbolTableItem for the modifier
-        ModifierSymbolTableItem modifierSymbolTableItem = new ModifierSymbolTableItem(
-                modifierDefinition.getIdentifier().getName(),   // Get the modifier name
-                modifierDefinition.getParameterList(),          // Parameter list of the modifier
-                modifierDefinition.getScope()                   // Scope of the modifier
-        );
-
-        // Try to insert the modifier symbol into the current symbol table
-        try {
-            SymbolTable.top.put(modifierSymbolTableItem);
-        } catch (ItemAlreadyExistsException e) {
-            // If the modifier is already defined in the current scope, report an error
-            System.out.println("Error: Modifier " + modifierDefinition.getIdentifier().getName() + " already declared in the current scope.");
+        // Handle modifier identifier
+        if (modifierDefinition.getIdentifier() == null) {
+            System.out.println("Error: Modifier without an identifier.");
             return null;
         }
 
-        // Visit the scope (Block) inside the ModifierDefinition
-        if (modifierDefinition.getScope() != null) {
-            modifierDefinition.getScope().accept(this);
+        String modifierName = modifierDefinition.getIdentifier().getName();
+
+        // Create ModifierSymbolTableItem
+        ModifierDefinitionSymbolTableItem modifierSymbolTableItem = new ModifierDefinitionSymbolTableItem(
+                modifierName,
+                modifierDefinition.getParameterList(),
+                modifierDefinition.getScope()
+        );
+
+        // Add modifier to the symbol table
+        try {
+            SymbolTable.top.put(modifierSymbolTableItem);
+        } catch (ItemAlreadyExistsException e) {
+            System.out.println("Error: Modifier " + modifierName + " already declared in the current scope.");
+            return null;
         }
+
+        // Create a new symbol table for the modifier's scope
+        SymbolTable modifierSymbolTable = new SymbolTable(SymbolTable.top);
+        modifierSymbolTableItem.setSymbolTable(modifierSymbolTable);
+        SymbolTable.push(modifierSymbolTable);  // Push the modifier's new scope
+
+        // Process the modifier's parameters
+        if (modifierDefinition.getParameterList() != null) {
+            for (Parameter parameter : modifierDefinition.getParameterList().getParameters()) {
+                if (parameter != null) {
+                    try {
+                        SymbolTable.root.getItem(VariableDeclarationSymbolTableItem.START_KEY + parameter.getIdentifier().getName(), true);
+                        System.out.println("Error: Parameter " + parameter.getIdentifier().getName() + " conflicts with a global variable.");
+                    } catch (ItemNotFoundException ignored) {
+                        parameter.accept(this);  // Process parameter declaration
+                    }
+                }
+            }
+        }
+
+        // Process the modifier's block scope (local variables and statements)
+        if (modifierDefinition.getScope() != null) {
+            modifierDefinition.getScope().accept(this);  // Process the modifier's scope
+        }
+
+        // Pop the modifier's symbol table after finishing the scope
+        SymbolTable.pop();
 
         return null;
     }
+
 
 
     @Override

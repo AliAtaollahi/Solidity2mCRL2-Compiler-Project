@@ -2,8 +2,10 @@ package main.symbolTable.items;
 
 import main.ast.nodes.expression.Expression;
 import main.ast.nodes.expression.primary.Type;
+import main.visitor.IVisitor;
 
 public class StateVariableSymbolTableItem extends SymbolTableItem {
+    public static String START_KEY = "StateVariable_";
     private String variableName;
     private Type type;
     private Expression value;
@@ -16,7 +18,7 @@ public class StateVariableSymbolTableItem extends SymbolTableItem {
 
     @Override
     public String getKey() {
-        return "StateVariable_" + variableName;
+        return this.START_KEY + variableName;
     }
 
     public String getVariableName() {
@@ -29,5 +31,10 @@ public class StateVariableSymbolTableItem extends SymbolTableItem {
 
     public Expression getValue() {
         return value;
+    }
+
+    @Override
+    public <T> T accept(IVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

@@ -1,5 +1,7 @@
 package main.symbolTable.items;
 
+import main.visitor.IVisitor;
+
 public class PrimaryExpressionSymbolTableItem extends SymbolTableItem {
     private String name;
 
@@ -14,5 +16,10 @@ public class PrimaryExpressionSymbolTableItem extends SymbolTableItem {
 
     public String getName() {
         return name;
+    }
+
+    @Override
+    public <T> T accept(IVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

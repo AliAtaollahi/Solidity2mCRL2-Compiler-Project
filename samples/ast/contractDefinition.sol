@@ -48,7 +48,9 @@ contract MyContract is MyAbstractContract, MyInterface {
     address public owner;
 
     // Modifier definition
-    modifier onlyOwner() {
+    modifier onlyOwner(uint a, uint b) {
+        uint id;
+        string name;
         require(msg.sender == owner, "Not the owner");
         _;
     }

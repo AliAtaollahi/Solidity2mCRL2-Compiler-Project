@@ -2,6 +2,7 @@ package main.symbolTable.items;
 
 import main.ast.nodes.expression.Expression;
 import main.ast.nodes.expression.primary.Type;
+import main.visitor.IVisitor;
 
 public class VariantTypeVariableDeclarationSymbolTableItem extends SymbolTableItem {
     public static String START_KEY = "VariantType_";  // Prefix for variable keys with variant types
@@ -39,5 +40,10 @@ public class VariantTypeVariableDeclarationSymbolTableItem extends SymbolTableIt
     // Setter for the initialization value
     public void setInitiateValue(Expression initiateValue) {
         this.initiateValue = initiateValue;
+    }
+
+    @Override
+    public <T> T accept(IVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

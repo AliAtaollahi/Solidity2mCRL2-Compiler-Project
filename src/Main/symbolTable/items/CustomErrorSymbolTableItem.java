@@ -1,6 +1,7 @@
 package main.symbolTable.items;
 
 import main.symbolTable.SymbolTable;
+import main.visitor.IVisitor;
 
 public class CustomErrorSymbolTableItem extends SymbolTableItem {
     private String customErrorName;
@@ -25,5 +26,10 @@ public class CustomErrorSymbolTableItem extends SymbolTableItem {
 
     public void setSymbolTable(SymbolTable symbolTable) {
         this.symbolTable = symbolTable;
+    }
+
+    @Override
+    public <T> T accept(IVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

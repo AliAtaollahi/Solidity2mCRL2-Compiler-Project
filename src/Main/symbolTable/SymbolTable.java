@@ -1,6 +1,7 @@
 package main.symbolTable;
 
 
+import main.ast.nodes.declaration.FunctionDefinition;
 import main.ast.nodes.declaration.VariableDeclaration;
 import main.ast.nodes.declaration.utility.*;
 import main.ast.nodes.expression.*;
@@ -12,7 +13,8 @@ import main.ast.nodes.expression.type.UserDefinedTypeName;
 import main.ast.nodes.expression.type.primitive.*;
 import main.symbolTable.exceptions.ItemAlreadyExistsException;
 import main.symbolTable.exceptions.ItemNotFoundException;
-import main.symbolTable.items.FunctionSymbolTableItem;
+import main.symbolTable.items.ContractDefinitionSymbolTableItem;
+import main.symbolTable.items.FunctionDefinitionSymbolTableItem;
 import main.symbolTable.items.SymbolTableItem;
 import main.symbolTable.utils.stack.Stack;
 import main.visitor.TypeEvaluator;
@@ -45,7 +47,7 @@ public class SymbolTable {
     //End of static members
 
     public SymbolTable pre;
-    private Map<String, SymbolTableItem> items;
+    public Map<String, SymbolTableItem> items;
 
     public SymbolTable() {
         this(null);
@@ -83,6 +85,23 @@ public class SymbolTable {
         throw new ItemNotFoundException();
     }
 
+    public SymbolTableItem getItemDebugMode(String key, Boolean searchCurrent) throws ItemNotFoundException {
+        Set<SymbolTable> visitedSymbolTables = new HashSet<>();
+        SymbolTable currentSymbolTable = this;
+        if(!searchCurrent) {
+            visitedSymbolTables.add(this);
+            currentSymbolTable = this.pre;
+        }
+        while((currentSymbolTable != null) && (!visitedSymbolTables.contains(currentSymbolTable))) {
+            visitedSymbolTables.add( currentSymbolTable );
+            SymbolTableItem symbolTableItem = currentSymbolTable.items.get(key);
+            if( symbolTableItem != null )
+                return symbolTableItem;
+            currentSymbolTable = currentSymbolTable.pre;
+        }
+        throw new ItemNotFoundException();
+    }
+
     public int getItemsSize() {
         return this.items.size();
     }
@@ -96,16 +115,24 @@ public class SymbolTable {
             visitedSymbolTables.add(currentSymbolTable);
 
             for (SymbolTableItem item : currentSymbolTable.items.values()) {
-                if (item instanceof FunctionSymbolTableItem) {
-                    FunctionSymbolTableItem functionItem = (FunctionSymbolTableItem) item;
+                if (item instanceof FunctionDefinitionSymbolTableItem) {
+                    FunctionDefinitionSymbolTableItem functionItem = (FunctionDefinitionSymbolTableItem) item;
 
-                    // Check if function name matches
-                    if (functionItem.getKey().equals("Function_" + extractName(functionName))) {
-                        // Check if argument types match
-                        if (areArgumentTypesMatching(functionItem, args, typeEvaluator)) {
-                            return functionItem;
+                    if (functionName instanceof Identifier) {
+                        if (functionItem.getKey().equals(FunctionDefinition.START_KEY + extractName(functionName))) {
+                            // Check if argument types match
+                            if (areArgumentTypesMatching(functionItem, args, typeEvaluator)) {
+                                return functionItem;
+                            }
                         }
+                    } else if (functionName instanceof ObjectCreation) {
+                    } else if (functionName instanceof AccessExpression) {
+                        System.out.println();
+                    } else if (functionName instanceof StructInitializationExpression) {
+                    } else if (functionName instanceof FunctionCallExpression) {
+                    } else {
                     }
+
                 }
             }
             currentSymbolTable = currentSymbolTable.pre;
@@ -139,7 +166,7 @@ public class SymbolTable {
 
 
     // Helper method to match argument types with function signature
-    private boolean areArgumentTypesMatching(FunctionSymbolTableItem functionItem, FunctionCallArguments args, TypeEvaluator typeEvaluator) {
+    private boolean areArgumentTypesMatching(FunctionDefinitionSymbolTableItem functionItem, FunctionCallArguments args, TypeEvaluator typeEvaluator) {
         ParameterList functionParams = functionItem.getReturnParameterList();
 
         // Handle ExpressionList
@@ -255,6 +282,35 @@ public class SymbolTable {
 
         // If the types are not specifically handled, fall back to comparing their class types
         return argumentType.getClass().equals(parameterType.getClass());
+    }
+
+//    public ContractDefinitionSymbolTableItem findContractDefinition(Expression master) {
+//        while (!(master instanceof Identifier)) {
+//            master = ((AccessExpression)master).getMaster();
+//
+//        }
+//        return findContractDefinition_();
+//    }
+
+    public ContractDefinitionSymbolTableItem findContractDefinition(String contractName) throws ItemNotFoundException {
+        Set<SymbolTable> visitedSymbolTables = new HashSet<>();
+        SymbolTable currentSymbolTable = this;
+
+        while (currentSymbolTable != null && !visitedSymbolTables.contains(currentSymbolTable)) {
+            visitedSymbolTables.add(currentSymbolTable);
+
+            for (SymbolTableItem item : currentSymbolTable.items.values()) {
+                if (item instanceof ContractDefinitionSymbolTableItem) {
+                    ContractDefinitionSymbolTableItem contractItem = (ContractDefinitionSymbolTableItem) item;
+                    if (contractItem.getContractName().equals(contractName)) {
+                        return contractItem;
+                    }
+                }
+            }
+            currentSymbolTable = currentSymbolTable.pre;
+        }
+
+        throw new ItemNotFoundException();
     }
 
 

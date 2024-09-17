@@ -14,6 +14,7 @@ import main.ast.nodes.expression.value.EnumValue;
 import main.ast.nodes.expression.value.ImportPath;
 import main.ast.nodes.expression.value.StorageLocation;
 import main.ast.nodes.statement.*;
+import main.symbolTable.items.*;
 
 public interface IVisitor<T> {
     T visit(SourceUnit sourceUnit);
@@ -162,4 +163,36 @@ public interface IVisitor<T> {
     T visit(OtherFunctionDescriptors otherFunctionDescriptors);
     T visit(TupleType tupleType);
 
+    T visit(ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem);
+
+    T visit(CustomErrorSymbolTableItem customErrorSymbolTableItem);
+
+    T visit(EnumDefinitionSymbolTableItem enumDefinitionSymbolTableItem);
+
+    T visit(EnumValueSymbolTableItem enumValueSymbolTableItem);
+
+    T visit(FileLevelConstantSymbolTableItem fileLevelConstantSymbolTableItem);
+
+    T visit(FunctionCallSymbolTableItem functionCallSymbolTableItem);
+
+    T visit(VariantTypeVariableDeclarationSymbolTableItem variantTypeVariableDeclarationSymbolTableItem);
+
+    T visit(VariableDeclarationSymbolTableItem variableDeclarationSymbolTableItem);
+
+    T visit(UsingForSymbolTableItem usingForSymbolTableItem);
+
+    T visit(StructDefinitionSymbolTableItem structDefinitionSymbolTableItem);
+
+    T visit(StateVariableSymbolTableItem stateVariableSymbolTableItem);
+
+    T visit(PrimaryExpressionSymbolTableItem primaryExpressionSymbolTableItem);
+
+    T visit(ParameterSymbolTableItem parameterSymbolTableItem);
+
+    T visit(ModifierDefinitionSymbolTableItem modifierDefinitionSymbolTableItem);
+
+    T visit(FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem);
+    T visit(Expression expression);
+
+    T visit(NoType noType);
 }

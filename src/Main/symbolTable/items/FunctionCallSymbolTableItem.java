@@ -6,18 +6,32 @@ import main.ast.nodes.expression.Expression;
 import main.ast.nodes.expression.ObjectCreation;
 import main.ast.nodes.expression.StructInitializationExpression;
 import main.ast.nodes.expression.primary.Identifier;
+import main.symbolTable.SymbolTable;
+import main.visitor.IVisitor;
 
 public class FunctionCallSymbolTableItem extends SymbolTableItem {
+
     private Expression functionName;  // The function being called
     private FunctionCallArguments args;  // The arguments passed to the function
     private int symbolTableSize;
     private boolean hasSimpleName;
 
-    public FunctionCallSymbolTableItem(Expression functionName, FunctionCallArguments args, int stackSize) {
+    public SymbolTable getCurrentSymbolTable() {
+        return currentSymbolTable;
+    }
+
+    public void setCurrentSymbolTable(SymbolTable currentSymbolTable) {
+        this.currentSymbolTable = currentSymbolTable;
+    }
+
+    private SymbolTable currentSymbolTable;
+
+    public FunctionCallSymbolTableItem(Expression functionName, FunctionCallArguments args, int stackSize, SymbolTable top) {
         this.functionName = functionName;
         this.args = args;
         this.symbolTableSize = stackSize;
         this.hasSimpleName = (functionName instanceof Identifier);
+        this.currentSymbolTable = top;
     }
 
     @Override
@@ -64,5 +78,10 @@ public class FunctionCallSymbolTableItem extends SymbolTableItem {
 
     public void setHasSimpleName(boolean hasSimpleName) {
         this.hasSimpleName = hasSimpleName;
+    }
+
+    @Override
+    public <T> T accept(IVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

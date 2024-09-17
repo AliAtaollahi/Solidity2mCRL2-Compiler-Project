@@ -1,5 +1,6 @@
 package main.visitor;
 
+import main.ast.nodes.declaration.FunctionDefinition;
 import main.ast.nodes.declaration.VariableDeclaration;
 import main.ast.nodes.declaration.utility.FunctionCallArguments;
 import main.ast.nodes.declaration.utility.Parameter;
@@ -9,6 +10,7 @@ import main.ast.nodes.expression.modifier.Modifier;
 import main.ast.nodes.expression.modifier.ModifierInvocation;
 import main.ast.nodes.expression.modifier.OtherModifers;
 import main.ast.nodes.expression.modifier.OverrideSpecifier;
+import main.ast.nodes.expression.type.*;
 import main.ast.nodes.expression.operators.BinaryOperator;
 import main.ast.nodes.expression.primary.*;
 import main.ast.nodes.expression.type.*;
@@ -158,14 +160,19 @@ public class TypeEvaluator extends Visitor<Type> {
 
         // Use the symbol table to get the matching function based on name and argument types
         try {
-            SymbolTableItem functionItem = this.symbolTable.getFunctionItem(functionName, args, this);
-            if (functionItem instanceof FunctionSymbolTableItem) {
-                // Get the return type of the function from the function definition
-                FunctionSymbolTableItem functionSymbolItem = (FunctionSymbolTableItem) functionItem;
-                ParameterList returnParams = functionSymbolItem.getReturnParameterList();
-                if (returnParams != null && !returnParams.getParameters().isEmpty()) {
-                    return returnParams.getParameters().get(0).getType();  // Assuming single return type for simplicity
+            if (functionName instanceof Identifier) {
+                SymbolTableItem functionItem = this.symbolTable.getFunctionItem(functionName, args, this);
+                if (functionItem instanceof FunctionDefinitionSymbolTableItem) {
+                    // Get the return type of the function from the function definition
+                    FunctionDefinitionSymbolTableItem functionSymbolItem = (FunctionDefinitionSymbolTableItem) functionItem;
+                    ParameterList returnParams = functionSymbolItem.getReturnParameterList();
+                    if (returnParams != null && !returnParams.getParameters().isEmpty()) {
+                        return returnParams.getParameters().get(0).getType();  // Assuming single return type for simplicity
+                    }
                 }
+            }
+            else if (functionName instanceof AccessExpression) {
+                System.out.println();
             }
         } catch (ItemNotFoundException e) {
             System.err.println("Error: " + e.getMessage());
@@ -193,27 +200,63 @@ public class TypeEvaluator extends Visitor<Type> {
         return new BoolType(); // Require expressions always expect a boolean condition.
     }
 
-    // AccessExpression Type Inference (e.g., struct.member or contract.function())
     @Override
     public Type visit(AccessExpression accessExpression) {
-//        Type masterType = accessExpression.getMaster().accept(this);
-//        // Infer type of the member (could be a struct field or contract method return type)
-//        return resolveTypeFromIdentifier(accessExpression.getMember());
-        // Step 1: Get the type of the master expression (could be another AccessExpression, contract, struct, etc.)
-        Type masterType = accessExpression.getMaster().accept(this);
+        Expression master = accessExpression.getMaster();
 
-        // Step 2: Check if the master is a contract or a struct
+        if (master == null) {
+            System.err.println("Error: Master expression is null in access expression.");
+            return null;
+        }
+
+        Type masterType = master.accept(this);
+
+        // Check if the master is a contract by looking it up in the symbol table
+        if (masterType != null && master instanceof Identifier) {
+            String contractName = ((UserDefinedTypeName) masterType).getTypeChain().get(0).getName();
+            try {
+                // Find the contract definition in the symbol table
+                ContractDefinitionSymbolTableItem contractItem = symbolTable.findContractDefinition(contractName);
+                if (contractItem != null) {
+                    SymbolTable contractSymbolTable = contractItem.getContractSymbolTable();
+
+                    // Now we need to look up the member in this contract's symbol table
+                    String memberName = accessExpression.getMember().getName();
+                    SymbolTableItem memberItem = contractSymbolTable.getItem(FunctionDefinition.START_KEY + memberName, true);
+
+                    // If the member is found, return its type
+                    if (memberItem instanceof VariableDeclarationSymbolTableItem) {
+                        return ((VariableDeclarationSymbolTableItem) memberItem).getType();
+                    } else if (memberItem instanceof FunctionDefinitionSymbolTableItem) {
+                        try {
+                            return getFunctionReturnType((FunctionDefinitionSymbolTableItem) memberItem);
+                        } catch (ItemNotFoundException e) {
+                            Type noType = new NoType();
+                            noType.setLine(masterType.getLine());
+                            return new NoType();
+                        }
+                    } else {
+                        System.err.println("Unsupported member type for '" + memberName + "' in contract '" + contractName + "'");
+                        return null;
+                    }
+                }
+            } catch (ItemNotFoundException e) {
+                System.err.println("Error: Contract definition '" + contractName + "' not found.");
+                return null;
+            }
+        }
+
+        // Handle other types, such as tuples or structs
         if (masterType instanceof UserDefinedTypeName) {
-            // Master is a user-defined type, so it could be a contract or struct.
             return resolveMemberFromContractOrStruct((UserDefinedTypeName) masterType, accessExpression.getMember());
         } else if (masterType instanceof TupleType) {
-            // Handle TupleType member access
             return resolveTupleMember((TupleType) masterType, accessExpression.getMember());
         } else {
             System.err.println("Unsupported master type in access expression: " + masterType);
             return null;
         }
     }
+
 
     private Type resolveMemberFromContractOrStruct(UserDefinedTypeName masterType, Identifier member) {
         String typeName = masterType.getTypeChain().get(0).getName(); // Get the contract or struct name
@@ -222,14 +265,14 @@ public class TypeEvaluator extends Visitor<Type> {
             // Look for the contract or struct in the symbol table
             SymbolTableItem item = this.symbolTable.getItem(typeName, true);
 
-            if (item instanceof ContractSymbolTableItem) {
+            if (item instanceof ContractDefinitionSymbolTableItem) {
                 // If it's a contract, resolve the member (could be a variable or function)
-                ContractSymbolTableItem contractItem = (ContractSymbolTableItem) item;
+                ContractDefinitionSymbolTableItem contractItem = (ContractDefinitionSymbolTableItem) item;
                 SymbolTable contractSymbolTable = contractItem.getContractSymbolTable();
                 return resolveMemberFromSymbolTable(contractSymbolTable, member);
-            } else if (item instanceof StructSymbolTableItem) {
+            } else if (item instanceof StructDefinitionSymbolTableItem) {
                 // If it's a struct, resolve the member as a struct field
-                StructSymbolTableItem structItem = (StructSymbolTableItem) item;
+                StructDefinitionSymbolTableItem structItem = (StructDefinitionSymbolTableItem) item;
                 SymbolTable structSymbolTable = structItem.getSymbolTable();
                 return resolveMemberFromSymbolTable(structSymbolTable, member);
             }
@@ -256,8 +299,8 @@ public class TypeEvaluator extends Visitor<Type> {
 
             if (memberItem instanceof VariableDeclarationSymbolTableItem) {
                 return ((VariableDeclarationSymbolTableItem) memberItem).getType();  // Return the type of the variable
-            } else if (memberItem instanceof FunctionSymbolTableItem) {
-                return getFunctionReturnType((FunctionSymbolTableItem) memberItem);  // Get and return the function's return type
+            } else if (memberItem instanceof FunctionDefinitionSymbolTableItem) {
+                return getFunctionReturnType((FunctionDefinitionSymbolTableItem) memberItem);  // Get and return the function's return type
             } else {
                 System.err.println("Unsupported member type for " + member.getName());
             }
@@ -267,13 +310,12 @@ public class TypeEvaluator extends Visitor<Type> {
         return null;
     }
 
-    private Type getFunctionReturnType(FunctionSymbolTableItem functionItem) {
+    private Type getFunctionReturnType(FunctionDefinitionSymbolTableItem functionItem) throws ItemNotFoundException {
         ParameterList returnParams = functionItem.getReturnParameterList();
 
         // Check if the function has return parameters
         if (returnParams == null || returnParams.getParameters().isEmpty()) {
-            System.err.println("Function has no return parameters.");
-            return null;  // No return value
+            throw new ItemNotFoundException();
         }
 
         // For now, we return the first return type if multiple return types exist (can be adjusted if needed)
@@ -348,14 +390,43 @@ public class TypeEvaluator extends Visitor<Type> {
     // Helper to resolve type from the symbol table using an identifier
     private Type resolveTypeFromIdentifier(Identifier identifier) {
         try {
-            SymbolTableItem item = this.symbolTable.getItem(VariableDeclarationSymbolTableItem.START_KEY + identifier.getName(), true);
+            SymbolTableItem item = this.symbolTable.getItemDebugMode(VariableDeclarationSymbolTableItem.START_KEY + identifier.getName(), true);
             if (item instanceof VariableDeclarationSymbolTableItem) {
                 return ((VariableDeclarationSymbolTableItem) item).getType();
             }
-        } catch (ItemNotFoundException e) {
-            // Handle item not found case.
-            System.err.println("Error: " + e.getMessage());
-        }
-        return null; // Return null if the type cannot be inferred.
+        } catch (ItemNotFoundException e) {}
+        try {
+            SymbolTableItem item = this.symbolTable.getItemDebugMode(FunctionDefinition.START_KEY + identifier.getName(), true);
+            // TODO -> bayad ReturnParameterList barresi besheh
+            if (item != null && item instanceof FunctionDefinitionSymbolTableItem) {
+                return ((FunctionDefinitionSymbolTableItem) item).getReturnParameterList().getParameters().get(0).getType();
+            }
+        } catch (ItemNotFoundException e) {}
+        try {
+            SymbolTableItem item = this.symbolTable.getItemDebugMode(StructInitializationExpression.START_KEY + identifier.getName(), true);
+            if (item != null && item instanceof StructDefinitionSymbolTableItem) {
+                return ((StructDefinitionSymbolTableItem)item).getType();
+            }
+        } catch (ItemNotFoundException e) {}
+        try {
+            SymbolTableItem item = this.symbolTable.getItemDebugMode(StateVariableSymbolTableItem.START_KEY + identifier.getName(), true);
+            if (item != null && item instanceof StateVariableSymbolTableItem) {
+                return ((StateVariableSymbolTableItem)item).getType();
+            }
+        } catch (ItemNotFoundException e) {}
+        try {
+            SymbolTableItem item = this.symbolTable.getItemDebugMode(ContractDefinitionSymbolTableItem.START_KEY + identifier.getName(), true);
+            if (item != null && item instanceof ContractDefinitionSymbolTableItem) {
+                return ((ContractDefinitionSymbolTableItem)item).getType();
+            }
+        } catch (ItemNotFoundException e) {}
+
+        System.out.println("fallback function called");
+        return new NoType();
+    }
+
+    @Override
+    public Type visit(Expression expression) {
+        return null;
     }
 }

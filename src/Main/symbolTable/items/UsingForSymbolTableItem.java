@@ -1,6 +1,7 @@
 package main.symbolTable.items;
 
 import main.ast.nodes.declaration.UsingForObject;
+import main.visitor.IVisitor;
 
 public class UsingForSymbolTableItem extends SymbolTableItem {
     private UsingForObject usingForObject;
@@ -28,5 +29,10 @@ public class UsingForSymbolTableItem extends SymbolTableItem {
 
     public boolean isGlobal() {
         return isGlobal;
+    }
+
+    @Override
+    public <T> T accept(IVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

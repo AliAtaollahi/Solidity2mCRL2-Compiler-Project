@@ -1,25 +1,39 @@
 package main.symbolTable.items;
 
-import main.ast.nodes.expression.primary.Identifier;
+import main.ast.nodes.expression.primary.Type;
+import main.ast.nodes.expression.type.UserDefinedTypeName;
 import main.symbolTable.SymbolTable;
 import main.ast.nodes.declaration.utility.InheritanceSpecifier;
+import main.visitor.IVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ContractSymbolTableItem extends SymbolTableItem {
+public class ContractDefinitionSymbolTableItem extends SymbolTableItem {
+    public static final String START_KEY = "Contract_";
     private String contractName;
     private SymbolTable contractSymbolTable;
-    private List<InheritanceSpecifier> inheritanceSpecifiers;  // New field to store inheritance specifiers
+    private List<InheritanceSpecifier> inheritanceSpecifiers;
 
-    public ContractSymbolTableItem(String contractName) {
+    public Type getType() {
+        return type;
+    }
+
+    public void setType(Type type) {
+        this.type = type;
+    }
+
+    private Type type;
+
+    public ContractDefinitionSymbolTableItem(String contractName, UserDefinedTypeName type) {
         this.contractName = contractName;
-        this.inheritanceSpecifiers = new ArrayList<>();  // Initialize the inheritance specifiers list
+        this.inheritanceSpecifiers = new ArrayList<>();
+        this.type = type;
     }
 
     @Override
     public String getKey() {
-        return "Contract_" + contractName;
+        return this.START_KEY + contractName;
     }
 
     public String getContractName() {
@@ -42,5 +56,10 @@ public class ContractSymbolTableItem extends SymbolTableItem {
     // New method to get all inheritance specifiers
     public List<InheritanceSpecifier> getInheritanceSpecifiers() {
         return inheritanceSpecifiers;
+    }
+
+    @Override
+    public <T> T accept(IVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

@@ -3,6 +3,7 @@ package main.symbolTable.items;
 import main.ast.nodes.declaration.VariableDeclaration;
 import main.ast.nodes.expression.Expression;  // For the initiation value
 import main.ast.nodes.expression.primary.Type;
+import main.visitor.IVisitor;
 
 public class VariableDeclarationSymbolTableItem extends SymbolTableItem {
     public static String START_KEY = "VarDeclaration_";  // Prefix for variable keys
@@ -40,5 +41,10 @@ public class VariableDeclarationSymbolTableItem extends SymbolTableItem {
     // Setter for the initialization value
     public void setInitiateValue(Expression initiateValue) {
         this.initiateValue = initiateValue;
+    }
+
+    @Override
+    public <T> T accept(IVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

@@ -2,6 +2,7 @@ package main.symbolTable.items;
 
 import main.ast.nodes.expression.Expression;
 import main.ast.nodes.expression.primary.Type;
+import main.visitor.IVisitor;
 
 public class FileLevelConstantSymbolTableItem extends SymbolTableItem {
     private String constantName;
@@ -25,5 +26,10 @@ public class FileLevelConstantSymbolTableItem extends SymbolTableItem {
 
     public Type getConstantType() {
         return constantType;
+    }
+
+    @Override
+    public <T> T accept(IVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

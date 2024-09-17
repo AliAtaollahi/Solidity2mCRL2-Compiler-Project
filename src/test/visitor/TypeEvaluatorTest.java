@@ -15,7 +15,7 @@ import main.ast.nodes.expression.type.UserDefinedTypeName;
 import main.ast.nodes.expression.type.primitive.*;
 import main.symbolTable.SymbolTable;
 import main.symbolTable.exceptions.ItemAlreadyExistsException;
-import main.symbolTable.items.FunctionSymbolTableItem;
+import main.symbolTable.items.FunctionDefinitionSymbolTableItem;
 import main.symbolTable.items.VariableDeclarationSymbolTableItem;
 import main.visitor.TypeEvaluator;
 import org.junit.jupiter.api.BeforeEach;
@@ -245,7 +245,7 @@ class TypeEvaluatorTest {
         functionDefinition.setReturnParameterList(returnParams);
 
         // Add the function to the symbol table, including its input and return parameters
-        FunctionSymbolTableItem functionItem = new FunctionSymbolTableItem("someFunction");
+        FunctionDefinitionSymbolTableItem functionItem = new FunctionDefinitionSymbolTableItem("someFunction");
         functionItem.setReturnParameterList(returnParams);  // Set the return parameters for the function
         functionItem.setSymbolTable(new SymbolTable());  // Create a new symbol table for the function's scope
 
