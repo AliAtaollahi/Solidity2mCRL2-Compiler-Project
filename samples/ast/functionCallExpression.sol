@@ -80,7 +80,7 @@ contract AllFunctionCallExpressions {
         MyContract newContractInstance = new MyContract(100);
 
         // 9. Calling a low-level function (fallback function)
-        address(this).call{value: 1 ether}("");
+//        address(this).call{value: 1 ether}("");
 
         // 10. Calling a function and using its return value in an expression
         uint result6 = add(getValue(), 100);

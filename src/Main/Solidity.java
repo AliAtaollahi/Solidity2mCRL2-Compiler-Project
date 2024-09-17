@@ -30,7 +30,6 @@ public class Solidity {
         nameAnalyzer.visit(sourceUnit);
         SymbolTable.root.hashCode();
 
-        System.out.println();
         // Serialize and save to file
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String json = gson.toJson(sourceUnit);

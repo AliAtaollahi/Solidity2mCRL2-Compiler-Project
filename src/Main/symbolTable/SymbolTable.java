@@ -126,14 +126,7 @@ public class SymbolTable {
                                 return functionItem;
                             }
                         }
-                    } else if (functionName instanceof ObjectCreation) {
-                    } else if (functionName instanceof AccessExpression) {
-                        System.out.println();
-                    } else if (functionName instanceof StructInitializationExpression) {
-                    } else if (functionName instanceof FunctionCallExpression) {
-                    } else {
                     }
-
                 }
             }
             currentSymbolTable = currentSymbolTable.pre;
@@ -312,7 +305,6 @@ public class SymbolTable {
 
             while (!(currentName.equals(member.getName()))) {
                 for (SymbolTableItem item : currentSymbolTable.items.values()) {
-
                     if (item instanceof StateVariableSymbolTableItem) {
                         StateVariableSymbolTableItem stateVariableSymbolTableItem = (StateVariableSymbolTableItem) item;
                         if (((Identifier) ((AccessExpression) it2).getMaster()).getName().equals(stateVariableSymbolTableItem.getVariableName())) {
@@ -331,14 +323,13 @@ public class SymbolTable {
             for (SymbolTableItem item : currentSymbolTable.items.values()) {
                 if (item instanceof StateVariableSymbolTableItem) {
                     StateVariableSymbolTableItem stateVariableSymbolTableItem = (StateVariableSymbolTableItem) item;
-                    if (master.getName().equals(stateVariableSymbolTableItem.getVariableName())) {
-                        ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem1 = findContractDefinition(((UserDefinedTypeName) stateVariableSymbolTableItem.getType()).getTypeChain().get(0).getName(), currentSymbolTable);
-                        return contractDefinitionSymbolTableItem1;
+                    if (((Identifier) ((AccessExpression) it2).getMember()).getName().equals(stateVariableSymbolTableItem.getVariableName())) {
+                        contractDefinitionSymbolTableItem = findContractDefinition(((UserDefinedTypeName) stateVariableSymbolTableItem.getType()).getTypeChain().get(0).getName(), currentSymbolTable);
+                        break;
                     }
                 }
             }
-
-            System.out.println();
+            return contractDefinitionSymbolTableItem;
         }
 
         throw new ItemNotFoundException();

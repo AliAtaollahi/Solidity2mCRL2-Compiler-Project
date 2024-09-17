@@ -1,8 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+contract Contract0 {
+    uint256 public value;
+
+    function setValue(uint256 _value) public {
+        value = _value;
+    }
+
+    function getValue() public view returns (uint256) {
+        return value;
+    }
+}
+
 contract Contract1 {
     uint256 public value;
+    Contract0 public contract0Instance;
 
     function setValue(uint256 _value) public {
         value = _value;
@@ -38,7 +51,7 @@ contract Contract3 {
 
     // This function calls a function from Contract1 via Contract2
     function updateContract1ValueThroughContract2(uint256 _value) public {
-        contract2Instance.contract1Instance.setValue(_value); // Access Contract1's function via Contract2
+        _value = contract2Instance.contract1Instance.contract0Instance.getValue(); // Access Contract1's function via Contract2
     }
 
 //    function getContract1ValueThroughContract2() public view returns (uint256) {

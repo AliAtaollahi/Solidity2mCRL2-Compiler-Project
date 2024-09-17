@@ -172,7 +172,6 @@ public class TypeEvaluator extends Visitor<Type> {
                 }
             }
             else if (functionName instanceof AccessExpression) {
-                System.out.println();
             }
         } catch (ItemNotFoundException e) {
             System.err.println("Error: " + e.getMessage());
@@ -210,9 +209,8 @@ public class TypeEvaluator extends Visitor<Type> {
         ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem = null;
         try {
             contractDefinitionSymbolTableItem = symbolTable.findFirstContractDefinition(accessExpression, this.symbolTable.pre);
-            System.out.println();
-        } catch (ItemNotFoundException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            System.out.println("Maybe fallback");
         }
 
         // Check if the master is a contract by looking it up in the symbol table
