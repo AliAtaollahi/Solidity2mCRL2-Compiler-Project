@@ -6,6 +6,11 @@ import main.visitor.IVisitor;
 
 public class StateVariableSymbolTableItem extends SymbolTableItem {
     public static String START_KEY = "StateVariable_";
+
+    public void setVariableName(String variableName) {
+        this.variableName = variableName;
+    }
+
     private String variableName;
     private Type type;
     private Expression value;

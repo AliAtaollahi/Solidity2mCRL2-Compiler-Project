@@ -202,49 +202,49 @@ public class TypeEvaluator extends Visitor<Type> {
 
     @Override
     public Type visit(AccessExpression accessExpression) {
-        Expression master = accessExpression.getMaster();
-
-        if (master == null) {
+        if (accessExpression == null) {
             System.err.println("Error: Master expression is null in access expression.");
             return null;
         }
 
-        Type masterType = master.accept(this);
+        ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem = null;
+        try {
+            contractDefinitionSymbolTableItem = symbolTable.findFirstContractDefinition(accessExpression);
+        } catch (ItemNotFoundException e) {
+            throw new RuntimeException(e);
+        }
 
         // Check if the master is a contract by looking it up in the symbol table
-        if (masterType != null && master instanceof Identifier) {
-            String contractName = ((UserDefinedTypeName) masterType).getTypeChain().get(0).getName();
-            try {
-                // Find the contract definition in the symbol table
-                ContractDefinitionSymbolTableItem contractItem = symbolTable.findContractDefinition(contractName);
-                if (contractItem != null) {
-                    SymbolTable contractSymbolTable = contractItem.getContractSymbolTable();
+        try {
+            if (contractDefinitionSymbolTableItem != null) {
+                SymbolTable contractSymbolTable = contractDefinitionSymbolTableItem.getContractSymbolTable();
 
-                    // Now we need to look up the member in this contract's symbol table
-                    String memberName = accessExpression.getMember().getName();
-                    SymbolTableItem memberItem = contractSymbolTable.getItem(FunctionDefinition.START_KEY + memberName, true);
+                // Now we need to look up the member in this contract's symbol table
+                String memberName = accessExpression.getMember().getName();
+                SymbolTableItem memberItem = contractSymbolTable.getItem(FunctionDefinition.START_KEY + memberName, true);
 
-                    // If the member is found, return its type
-                    if (memberItem instanceof VariableDeclarationSymbolTableItem) {
-                        return ((VariableDeclarationSymbolTableItem) memberItem).getType();
-                    } else if (memberItem instanceof FunctionDefinitionSymbolTableItem) {
-                        try {
-                            return getFunctionReturnType((FunctionDefinitionSymbolTableItem) memberItem);
-                        } catch (ItemNotFoundException e) {
-                            Type noType = new NoType();
-                            noType.setLine(masterType.getLine());
-                            return new NoType();
-                        }
-                    } else {
-                        System.err.println("Unsupported member type for '" + memberName + "' in contract '" + contractName + "'");
-                        return null;
+                // If the member is found, return its type
+                if (memberItem instanceof VariableDeclarationSymbolTableItem) {
+                    return ((VariableDeclarationSymbolTableItem) memberItem).getType();
+                } else if (memberItem instanceof FunctionDefinitionSymbolTableItem) {
+                    try {
+                        return getFunctionReturnType((FunctionDefinitionSymbolTableItem) memberItem);
+                    } catch (ItemNotFoundException e) {
+                        Type noType = new NoType();
+                        noType.setLine(accessExpression.getLine());
+                        return new NoType();
                     }
+                } else {
+                    System.err.println("Unsupported member type for '" + memberName + "' in contract ");
+                    return null;
                 }
-            } catch (ItemNotFoundException e) {
-                System.err.println("Error: Contract definition '" + contractName + "' not found.");
-                return null;
             }
+        } catch (ItemNotFoundException e) {
+            System.err.println("Error: Contract definition not found.");
+            return null;
         }
+
+        Type masterType = accessExpression.getMaster().accept(this);
 
         // Handle other types, such as tuples or structs
         if (masterType instanceof UserDefinedTypeName) {

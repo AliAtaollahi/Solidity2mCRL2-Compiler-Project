@@ -15,6 +15,7 @@ import main.symbolTable.exceptions.ItemAlreadyExistsException;
 import main.symbolTable.exceptions.ItemNotFoundException;
 import main.symbolTable.items.ContractDefinitionSymbolTableItem;
 import main.symbolTable.items.FunctionDefinitionSymbolTableItem;
+import main.symbolTable.items.StateVariableSymbolTableItem;
 import main.symbolTable.items.SymbolTableItem;
 import main.symbolTable.utils.stack.Stack;
 import main.visitor.TypeEvaluator;
@@ -284,13 +285,27 @@ public class SymbolTable {
         return argumentType.getClass().equals(parameterType.getClass());
     }
 
-//    public ContractDefinitionSymbolTableItem findContractDefinition(Expression master) {
-//        while (!(master instanceof Identifier)) {
-//            master = ((AccessExpression)master).getMaster();
-//
-//        }
-//        return findContractDefinition_();
-//    }
+    public ContractDefinitionSymbolTableItem findFirstContractDefinition(Expression it) throws ItemNotFoundException {
+        Set<SymbolTable> visitedSymbolTables = new HashSet<>();
+        SymbolTable currentSymbolTable = this;
+
+        Identifier member = ((AccessExpression)it).getMember();
+        Identifier master = (Identifier)((AccessExpression)it).getMaster();
+        currentSymbolTable = currentSymbolTable.pre;
+        for (SymbolTableItem item : currentSymbolTable.items.values()) {
+            if (item instanceof StateVariableSymbolTableItem) {
+                StateVariableSymbolTableItem stateVariableSymbolTableItem = (StateVariableSymbolTableItem) item;
+                if(master.getName().equals(stateVariableSymbolTableItem.getVariableName())) {
+                    return findContractDefinition(((UserDefinedTypeName)stateVariableSymbolTableItem.getType()).getTypeChain().get(0).getName());
+                }
+            }
+        }
+
+        throw new ItemNotFoundException();
+
+    }
+
+
 
     public ContractDefinitionSymbolTableItem findContractDefinition(String contractName) throws ItemNotFoundException {
         Set<SymbolTable> visitedSymbolTables = new HashSet<>();
