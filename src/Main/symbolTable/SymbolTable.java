@@ -308,9 +308,9 @@ public class SymbolTable {
                 it2 = ((AccessExpression) it2).getMaster();
             }
             String currentName = ((Identifier) ((AccessExpression) it2).getMember()).getName();
+            ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem = null;
 
             while (!(currentName.equals(member.getName()))) {
-                ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem = null;
                 for (SymbolTableItem item : currentSymbolTable.items.values()) {
 
                     if (item instanceof StateVariableSymbolTableItem) {
@@ -327,6 +327,17 @@ public class SymbolTable {
                 }
                 currentName = (it3 instanceof AccessExpression) ? ((AccessExpression) it3).getMember().getName() : ((Identifier)it3).getName();
             }
+            currentSymbolTable = ((ContractDefinitionSymbolTableItem)contractDefinitionSymbolTableItem).getContractSymbolTable();
+            for (SymbolTableItem item : currentSymbolTable.items.values()) {
+                if (item instanceof StateVariableSymbolTableItem) {
+                    StateVariableSymbolTableItem stateVariableSymbolTableItem = (StateVariableSymbolTableItem) item;
+                    if (master.getName().equals(stateVariableSymbolTableItem.getVariableName())) {
+                        ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem1 = findContractDefinition(((UserDefinedTypeName) stateVariableSymbolTableItem.getType()).getTypeChain().get(0).getName(), currentSymbolTable);
+                        return contractDefinitionSymbolTableItem1;
+                    }
+                }
+            }
+
             System.out.println();
         }
 

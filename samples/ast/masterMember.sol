@@ -41,7 +41,7 @@ contract Contract3 {
         contract2Instance.contract1Instance.setValue(_value); // Access Contract1's function via Contract2
     }
 
-    function getContract1ValueThroughContract2() public view returns (uint256) {
-        return contract2Instance.contract1Instance.updateContract1ValueThroughContract2(); // Access Contract1's function via Contract2
-    }
+//    function getContract1ValueThroughContract2() public view returns (uint256) {
+//        return contract2Instance.contract1Instance.updateContract1ValueThroughContract2(); // Access Contract1's function via Contract2
+//    }
 }
