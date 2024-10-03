@@ -18,27 +18,24 @@ import main.ast.nodes.expression.value.EnumValue;
 import main.ast.nodes.expression.value.ImportPath;
 import main.ast.nodes.expression.value.StorageLocation;
 import main.ast.nodes.statement.*;
-import main.symbolTable.SymbolTable;
-import main.symbolTable.exceptions.ItemAlreadyExistsException;
-import main.symbolTable.exceptions.ItemNotFoundException;
-import main.symbolTable.items.*;
 
 import java.util.ArrayList;
-import java.util.List;
 
-public class NameAnalyzer extends Visitor<Void> {
-    private ContractDefinition currentContractDefinition;
+public class ExpressionAnalyzer extends Visitor<Void> {
+    private boolean isFound = false;
+    private String searchItem = "";
+    private String master = "";
+    private String member = "";
+
     @Override
     public Void visit(SourceUnit sourceUnit) {
-        SymbolTable.push(new SymbolTable());
-        SymbolTable.root = SymbolTable.top;
-
-//        // Visit all ImportDirectives
-//        for (ImportDirective importDirective : sourceUnit.getImportDirectives()) {
-//            importDirective.accept(this);
-//        }
+        // Visit all ImportDirectives
+        for (ImportDirective importDirective : sourceUnit.getImportDirectives()) {
+            importDirective.accept(this);
+        }
 
         // Visit all ContractDefinitions
+        ArrayList<ContractDefinition> cleanContractDefinitions = new ArrayList<>();
         for (ContractDefinition contractDefinition : sourceUnit.getContractDefinitions()) {
             contractDefinition.accept(this);
         }
@@ -54,7 +51,6 @@ public class NameAnalyzer extends Visitor<Void> {
         }
 
         // Visit all FunctionDefinitions
-        currentContractDefinition = null;
         for (FunctionDefinition functionDefinition : sourceUnit.getFunctionDefinitions()) {
             functionDefinition.accept(this);
         }
@@ -77,10 +73,12 @@ public class NameAnalyzer extends Visitor<Void> {
         return null;
     }
 
-//    @Override
-//    public Void visit(Identifier identifier) {
-//        return null;
-//    }
+    @Override
+    public Void visit(Identifier identifier) {
+        if (searchItem.equals(identifier.getName()))
+            this.isFound = true;
+        return null;
+    }
 
     @Override
     public Void visit(BinaryExpression binaryExpression) {
@@ -131,144 +129,73 @@ public class NameAnalyzer extends Visitor<Void> {
 
     @Override
     public Void visit(ContractDefinition contractDefinition) {
-        this.currentContractDefinition = contractDefinition;
-        // Get the contract name
-        Identifier contractNameId = contractDefinition.getName();
-        UserDefinedTypeName type = new UserDefinedTypeName();
-        type.addChainRing(contractDefinition.getName().getName());
-        type.setLine(contractDefinition.getName().getLine());
-
-        // Create a ContractSymbolTableItem for the contract
-        ContractDefinitionSymbolTableItem contractSymbolTableItem = new ContractDefinitionSymbolTableItem(
-                contractNameId.getName(),
-                type,
-                contractDefinition
-        );
-
-        // Try to insert the contract symbol into the current symbol table
-        try {
-            SymbolTable.top.put(contractSymbolTableItem);
-        } catch (ItemAlreadyExistsException e) {
-            // If the contract is already defined in the current scope, report an error
-            System.out.println("Error: Contract " + contractNameId.getName() + " already declared in the current scope.");
-            return null;
+        // Visit the contract name
+        if (contractDefinition.getName() != null) {
+            contractDefinition.getName().accept(this);
         }
 
-        // Create a new symbol table for the contract and link it to the symbol table item
-        SymbolTable contractSymbolTable = new SymbolTable(SymbolTable.top);
-        contractSymbolTableItem.setContractSymbolTable(contractSymbolTable);  // Link symbol table to the contract
-        SymbolTable.push(contractSymbolTable);  // Push the new symbol table for the contract scope
-
-        // Visit all inheritance specifiers and add them to the contract symbol table item
+        // Visit each inheritance specifier in the list
         for (InheritanceSpecifier inheritanceSpecifier : contractDefinition.getInheritanceSpecifiers()) {
-            if (inheritanceSpecifier != null) {
-                inheritanceSpecifier.accept(this);  // Visit the inheritance specifier
-                contractSymbolTableItem.addInheritanceSpecifier(inheritanceSpecifier);  // Add to contract symbol
-            }
+            inheritanceSpecifier.accept(this);
         }
 
-        // Visit all contract parts (functions, variables, etc.)
-        ArrayList<ContractPart> cleanContractParts = new ArrayList<>();
+        // Visit each contract part in the list
         for (ContractPart contractPart : contractDefinition.getContractParts()) {
-            if (contractPart != null) {
-                cleanContractParts.add(contractPart);
-                contractPart.accept(this);  // Visit the contract part
-            }
+            contractPart.accept(this);
         }
 
-        // Update the contract definition with the clean list of contract parts
-        contractDefinition.setContractParts(cleanContractParts);
-
-        // Pop the symbol table after finishing the contract scope
-        SymbolTable.pop();
-
-        return null;
+        return null;  // Since the method return type is Void
     }
-
-
 
     @Override
     public Void visit(EnumDefinition enumDefinition) {
-        Identifier enumNameId = enumDefinition.getName();
-
-        EnumDefinitionSymbolTableItem enumSymbolTableItem = new EnumDefinitionSymbolTableItem(enumNameId.getName());
-
-        try {
-            SymbolTable.top.put(enumSymbolTableItem);
-        } catch (ItemAlreadyExistsException e) {
-            System.out.println("Error: Enum " + enumNameId.getName() + " already declared in the current scope.");
-            return null;
+        // Visit the enum name
+        if (enumDefinition.getName() != null) {
+            enumDefinition.getName().accept(this);
         }
 
-        SymbolTable enumSymbolTable = new SymbolTable(SymbolTable.top);
-        enumSymbolTableItem.setSymbolTable(enumSymbolTable);  // Link the symbol table to the enum
-        SymbolTable.push(enumSymbolTable);  // Push the new symbol table for the enum scope
-
-        int enumIndex = 0;
+        // Visit each enum value in the list
         for (EnumValue enumValue : enumDefinition.getEnumValues()) {
             if (enumValue != null) {
-                EnumValueSymbolTableItem enumValueItem = new EnumValueSymbolTableItem(enumValue.getValue().getName(), enumIndex);
-
-                try {
-                    SymbolTable.top.put(enumValueItem);
-                } catch (ItemAlreadyExistsException e) {
-                    System.out.println("Error: Enum value '" + enumValue.getValue().getName() + "' already declared.");
-                }
-
-                enumIndex++;
+                enumValue.accept(this);
             }
         }
 
-        SymbolTable.pop();
-        return null;
+        return null;  // Since the method return type is Void
     }
 
     @Override
     public Void visit(StructDefinition structDefinition) {
-        Identifier structNameId = structDefinition.getNameId();
-        UserDefinedTypeName type = new UserDefinedTypeName();
-        type.addChainRing(structNameId.getName());
-        type.setLine(structDefinition.getLine());
-
-        StructDefinitionSymbolTableItem structSymbolTableItem = new StructDefinitionSymbolTableItem(structNameId.getName(), type);
-
-        try {
-            SymbolTable.top.put(structSymbolTableItem);
-        } catch (ItemAlreadyExistsException e) {
-            // If struct is already defined in the current scope, report an error
-            System.out.println("Error: Struct " + structNameId.getName() + " already declared in the current scope.");
-            return null;
+        // Visit the struct name identifier
+        if (structDefinition.getNameId() != null) {
+            structDefinition.getNameId().accept(this);
         }
 
-        SymbolTable structSymbolTable = new SymbolTable(SymbolTable.top);
-        structSymbolTableItem.setSymbolTable(structSymbolTable); // Link symbol table to the struct
-        SymbolTable.push(structSymbolTable);  // Push the new symbol table for the struct scope
-
+        // Visit each variable declaration in the list
         for (VariableDeclaration variableDeclaration : structDefinition.getVariableDeclarations()) {
             if (variableDeclaration != null) {
-                variableDeclaration.accept(this); // Visit the variable declaration
+                variableDeclaration.accept(this);
             }
         }
 
-        SymbolTable.pop();
-
-        return null;
+        return null;  // Since the method return type is Void
     }
-
 
     @Override
     public Void visit(FileLevelConstant fileLevelConstant) {
-        FileLevelConstantSymbolTableItem constantSymbolTableItem = new FileLevelConstantSymbolTableItem(
-                fileLevelConstant.getName().getName(),
-                fileLevelConstant.getType(),
-                fileLevelConstant.getValue()
-        );
+        // Visit the type
+        if (fileLevelConstant.getType() != null) {
+            fileLevelConstant.getType().accept(this);
+        }
 
-        try {
-            SymbolTable.top.put(constantSymbolTableItem);
-        } catch (ItemAlreadyExistsException e) {
-            System.out.println("Error: File-level constant " + fileLevelConstant.getName().getName() + " already declared.");
-            return null;
+        // Visit the name identifier
+        if (fileLevelConstant.getName() != null) {
+            fileLevelConstant.getName().accept(this);
+        }
+
+        // Visit the value expression
+        if (fileLevelConstant.getValue() != null) {
+            fileLevelConstant.getValue().accept(this);
         }
 
         return null;  // Since the method return type is Void
@@ -276,142 +203,62 @@ public class NameAnalyzer extends Visitor<Void> {
 
     @Override
     public Void visit(CustomErrorDefinition customErrorDefinition) {
-        Identifier errorNameId = customErrorDefinition.getName();
-
-        CustomErrorSymbolTableItem errorSymbolTableItem = new CustomErrorSymbolTableItem(errorNameId.getName());
-
-        try {
-            SymbolTable.top.put(errorSymbolTableItem);
-        } catch (ItemAlreadyExistsException e) {
-            System.out.println("Error: Custom Error " + errorNameId.getName() + " already declared in the current scope.");
-            return null;
+        // Visit the error name identifier
+        if (customErrorDefinition.getName() != null) {
+            customErrorDefinition.getName().accept(this);
         }
 
-        SymbolTable errorSymbolTable = new SymbolTable(SymbolTable.top);
-        errorSymbolTableItem.setSymbolTable(errorSymbolTable);  // Link the symbol table to the custom error
-        SymbolTable.push(errorSymbolTable);  // Push the new symbol table for the custom error's scope
-
+        // Visit the parameter list
         if (customErrorDefinition.getParameters() != null) {
             customErrorDefinition.getParameters().accept(this);
         }
 
-        SymbolTable.pop();
-
-        return null;
+        return null;  // Since the method return type is Void
     }
-
 
     @Override
     public Void visit(UsingForDeclaration usingForDeclaration) {
-        // Visit the UsingForObject if present
+        // Visit the UsingForObject
         if (usingForDeclaration.getUsingForObject() != null) {
             usingForDeclaration.getUsingForObject().accept(this);
         }
 
-        // If the declaration is not "for all types", visit the type
+        // Visit the Type if it is not for all types
         if (!usingForDeclaration.isAllType() && usingForDeclaration.getType() != null) {
             usingForDeclaration.getType().accept(this);
         }
 
-        // Insert the UsingForDeclaration into the symbol table
-        try {
-            UsingForSymbolTableItem usingForItem = new UsingForSymbolTableItem(
-                    usingForDeclaration.getUsingForObject(),
-                    usingForDeclaration.isAllType() ? "*" : usingForDeclaration.getType().toString(),
-                    usingForDeclaration.isGlobal()
-            );
-            SymbolTable.top.put(usingForItem);
-        } catch (ItemAlreadyExistsException e) {
-            System.out.println("Error: Using-for declaration already exists.");
-        }
-
-        return null;
+        return null;  // Since the method return type is Void
     }
 
     @Override
     public Void visit(FunctionDefinition functionDefinition) {
-        // Handle functionDescriptor
-        PrimaryExpression functionDescriptor = functionDefinition.getFunctionDescriptor();
-        if (functionDescriptor == null) {
-            System.out.println("Error: Function without a name.");
-            return null;
+        // Visit the function descriptor
+        if (functionDefinition.getFunctionDescriptor() != null) {
+            functionDefinition.getFunctionDescriptor().accept(this);
         }
 
-        String functionName = (functionDescriptor instanceof FunctionDescriptor) ?
-                ((FunctionDescriptor) functionDescriptor).getName().getName() :
-                ((OtherFunctionDescriptors) functionDescriptor).getName();
-
-        // Create FunctionSymbolTableItem
-        FunctionDefinitionSymbolTableItem functionSymbolTableItem = new FunctionDefinitionSymbolTableItem(
-                functionName,
-                functionDefinition,
-                currentContractDefinition
-                );
-
-        // Store the function's modifiers in the symbol table item
-        if (functionDefinition.getModifierList() != null) {
-            functionSymbolTableItem.setModifierList(functionDefinition.getModifierList());
-        }
-
-        // Store the return parameters in the symbol table item
-        if (functionDefinition.getReturnParameterList() != null) {
-            functionSymbolTableItem.setReturnParameterList(functionDefinition.getReturnParameterList());
-        }
-
-        // Store the return parameters in the symbol table item
-        if (functionDefinition.getScope() != null) {
-            functionSymbolTableItem.setScope(functionDefinition.getScope());
-        }
-
-        // Add function to symbol table
-        try {
-            SymbolTable.top.put(functionSymbolTableItem);
-        } catch (ItemAlreadyExistsException e) {
-            System.out.println("Error: Function " + functionName + " already declared in the current scope.");
-            return null;
-        }
-
-        // Create a new symbol table for the function's scope
-        SymbolTable functionSymbolTable = new SymbolTable(SymbolTable.top);
-        functionSymbolTableItem.setSymbolTable(functionSymbolTable);
-        SymbolTable.push(functionSymbolTable);  // Push the function's new scope
-
-        // Process function parameters
+        // Visit the parameter list
         if (functionDefinition.getParameterList() != null) {
-            for (Parameter parameter : functionDefinition.getParameterList().getParameters()) {
-                if (parameter != null) {
-                    try {
-                        SymbolTable.root.getItem(VariableDeclarationSymbolTableItem.START_KEY + parameter.getIdentifier().getName(), true);
-                        System.out.println("Error: Parameter " + parameter.getIdentifier().getName() + " conflicts with a global variable.");
-                    } catch (ItemNotFoundException ignored) {
-                        parameter.accept(this);  // Process parameter declaration
-                    }
-                }
-            }
+            functionDefinition.getParameterList().accept(this);
         }
 
-        // Store and process return parameters
+        // Visit the modifier list
+        if (functionDefinition.getModifierList() != null) {
+            functionDefinition.getModifierList().accept(this);
+        }
+
+        // Visit the return parameter list
         if (functionDefinition.getReturnParameterList() != null) {
-            for (Parameter returnParam : functionDefinition.getReturnParameterList().getParameters()) {
-                if (returnParam != null && returnParam.getIdentifier() != null) {
-                    try {
-                        SymbolTable.root.getItem(VariableDeclarationSymbolTableItem.START_KEY + returnParam.getIdentifier().getName(), true);
-                        System.out.println("Error: Return parameter " + returnParam.getIdentifier().getName() + " conflicts with a global variable.");
-                    } catch (ItemNotFoundException ignored) {
-                        returnParam.accept(this);  // Process return parameter declaration
-                    }
-                }
-            }
+            functionDefinition.getReturnParameterList().accept(this);
         }
 
-        // Process the function's block scope (local variables and statements)
+        // Visit the scope (block)
         if (functionDefinition.getScope() != null) {
-            functionDefinition.getScope().accept(this);  // Process the function's scope
+            functionDefinition.getScope().accept(this);
         }
 
-        // Pop the function's symbol table after finishing the function's scope
-        SymbolTable.pop();
-        return null;
+        return null;  // Since the method return type is Void
     }
 
     @Override
@@ -440,15 +287,24 @@ public class NameAnalyzer extends Visitor<Void> {
     }
 
     @Override
-    public Void visit(VariableDeclaration varDeclaration) {
-        try {
-            // Attempt to add the variable to the symbol table
-            SymbolTable.top.put(new VariableDeclarationSymbolTableItem(varDeclaration));
-        } catch (ItemAlreadyExistsException e) {
+    public Void visit(VariableDeclaration variableDeclaration) {
+        // Visit the variable name identifier
+        if (variableDeclaration.getVariableName() != null) {
+            variableDeclaration.getVariableName().accept(this);
         }
-        return null;
-    }
 
+        // Visit the variable type
+        if (variableDeclaration.getVariableType() != null) {
+            variableDeclaration.getVariableType().accept(this);
+        }
+
+        // Visit the storage location
+        if (variableDeclaration.getStorageLocation() != null) {
+            variableDeclaration.getStorageLocation().accept(this);
+        }
+
+        return null;  // Since the method return type is Void
+    }
 
     @Override
     public Void visit(ImportPath importPath) {
@@ -655,6 +511,13 @@ public class NameAnalyzer extends Visitor<Void> {
 
     @Override
     public Void visit(AccessExpression accessExpression) {
+        if (!this.master.equals("")) {
+            if(accessExpression.getMember().getName().equals(this.member) &&
+                accessExpression.getMaster() instanceof Identifier &&
+                ((Identifier)accessExpression.getMaster()).getName().equals(this.master)) {
+                this.isFound = true;
+            }
+        }
         // Visit the master expression
         if (accessExpression.getMaster() != null) {
             accessExpression.getMaster().accept(this);
@@ -729,31 +592,13 @@ public class NameAnalyzer extends Visitor<Void> {
             functionCallExpression.getFunctionName().accept(this);
         }
 
-        // Visit the arguments (FunctionCallArguments)
+        // Visit the arguments
         if (functionCallExpression.getArgs() != null) {
             functionCallExpression.getArgs().accept(this);
         }
 
-        // Create a FunctionCallSymbolTableItem for the function call
-        FunctionCallSymbolTableItem functionCallSymbolTableItem = new FunctionCallSymbolTableItem(
-                functionCallExpression.getFunctionName(),
-                functionCallExpression.getArgs(),
-                SymbolTable.top.getItemsSize(),
-                SymbolTable.top
-        );
-
-        // Try to insert the function call into the current symbol table
-        try {
-            SymbolTable.top.put(functionCallSymbolTableItem);
-        } catch (ItemAlreadyExistsException e) {
-            // If the function call is already defined in the current scope, report an error
-            System.out.println("Error: Function call to " + functionCallExpression.getFunctionName().toString() + " already declared in the current scope. in line " + functionCallExpression.getLine() + " .");
-            return null;
-        }
-
-        return null;  // Since the method return type is Void
+        return null;  // Return null as the specific implementation might need to handle different return types
     }
-
 
     @Override
     public Void visit(StructInitializationExpression structInitializationExpression) {
@@ -825,40 +670,24 @@ public class NameAnalyzer extends Visitor<Void> {
         return null;
     }
 
-
     @Override
     public Void visit(Parameter parameter) {
-        // Step 1: Visit the type of the parameter, if it exists
+        // Visit the type inside the Parameter
         if (parameter.getType() != null) {
             parameter.getType().accept(this);
         }
 
-        // Step 2: Visit the storage location of the parameter, if it exists
+        // Visit the storageLocation inside the Parameter
         if (parameter.getStorageLocation() != null) {
             parameter.getStorageLocation().accept(this);
         }
 
-        // Step 3: Visit the identifier of the parameter, if it exists
+        // Visit the identifier inside the Parameter
         if (parameter.getIdentifier() != null) {
             parameter.getIdentifier().accept(this);
-
-            // Step 4: Insert the parameter into the symbol table
-            ParameterSymbolTableItem paramSymbolTableItem = new ParameterSymbolTableItem(
-                    parameter.getIdentifier().getName(),
-                    parameter.getType(),
-                    parameter.getStorageLocation()
-            );
-
-            try {
-                // Insert the parameter into the current symbol table
-                SymbolTable.top.put(paramSymbolTableItem);
-            } catch (ItemAlreadyExistsException e) {
-                // If the parameter name is already declared, report an error
-                System.out.println("Error: Parameter " + parameter.getIdentifier().getName() + " already declared.");
-            }
         }
 
-        return null;  // Since the method return type is Void
+        return null;
     }
 
     @Override
@@ -890,7 +719,7 @@ public class NameAnalyzer extends Visitor<Void> {
             usingForObject.getType().accept(this);
         }
 
-        // Visit each UsingForObjectDirective
+        // Visit each UsingForObjectDirective in the objectDirectives list
         for (UsingForObjectDirective directive : usingForObject.getObjectDirectives()) {
             if (directive != null) {
                 directive.accept(this);
@@ -946,6 +775,8 @@ public class NameAnalyzer extends Visitor<Void> {
 
     @Override
     public Void visit(Block block) {
+
+
         ArrayList<Statement> cleanStatements = new ArrayList<>();
         for (Statement statement : block.getStatements()) {
             if (statement != null) {
@@ -1059,120 +890,9 @@ public class NameAnalyzer extends Visitor<Void> {
         }
 
         // Visit the initiateValue (Expression) in the VariableDeclarationStatement
-        Expression initiateValue = null;
         if (variableDeclarationStatement.getInitiateValue() != null) {
             variableDeclarationStatement.getInitiateValue().accept(this);
-            initiateValue = variableDeclarationStatement.getInitiateValue();
         }
-
-        // After visiting, we search for the variable in the symbol table
-        if (variableDeclarationStatement.getVariableList() instanceof VariableDeclaration) {
-            VariableDeclaration variableDeclaration = (VariableDeclaration)variableDeclarationStatement.getVariableList();
-            Expression value = initiateValue;  // Get the corresponding value for the variable
-
-            if (variableDeclaration != null) {
-                try {
-                    // Search for the variable in the current scope's symbol table
-                    SymbolTableItem variableSymbolItem = SymbolTable.top.getItem(VariableDeclarationSymbolTableItem.START_KEY + variableDeclaration.getVariableName().getName(), true);
-
-                    // Assign the respective value from initiateValues to the variable
-                    ((VariableDeclarationSymbolTableItem) variableSymbolItem).setInitiateValue(value);
-
-                } catch (ItemNotFoundException e) {
-                    System.out.println("Error: Variable " + variableDeclaration.getVariableName().getName() + " not found in the current scope.");
-                }
-            }
-        }
-        else if (variableDeclarationStatement.getVariableList() instanceof VariableDeclarationList) {
-            VariableDeclarationList variableList = (VariableDeclarationList) variableDeclarationStatement.getVariableList();
-            List<VariableDeclaration> variableDeclarations = variableList.getVariableDeclarations();
-
-            // Ensure initiateValue is a tuple-like structure (e.g., a list of expressions)
-            if (initiateValue instanceof TupleExpression) {
-                List<Expression> initiateValues = ((TupleExpression) initiateValue).getExpressions();
-
-                // Ensure the number of variables matches the number of values
-                if (variableDeclarations.size() == initiateValues.size()) {
-                    for (int i = 0; i < variableDeclarations.size(); i++) {
-                        VariableDeclaration variableDeclaration = variableDeclarations.get(i);
-                        Expression value = initiateValues.get(i);  // Get the corresponding value for the variable
-
-                        if (variableDeclaration != null) {
-                            try {
-                                // Search for the variable in the current scope's symbol table
-                                SymbolTableItem variableSymbolItem = SymbolTable.top.getItem(VariableDeclarationSymbolTableItem.START_KEY + variableDeclaration.getVariableName().getName(), true);
-
-                                // Assign the respective value from initiateValues to the variable
-                                ((VariableDeclarationSymbolTableItem) variableSymbolItem).setInitiateValue(value);
-
-                            } catch (ItemNotFoundException e) {
-                                System.out.println("Error: Variable " + variableDeclaration.getVariableName().getName() + " not found in the current scope.");
-                            }
-                        }
-                    }
-                } else {
-                    System.out.println("Error: Mismatched number of variables and initiate values.");
-                }
-            }
-        }
-        else if (variableDeclarationStatement.getVariableList() instanceof IdentifierList) {
-            IdentifierList identifierList = (IdentifierList) variableDeclarationStatement.getVariableList();
-            List<Identifier> identifiers = identifierList.getIdentifiers();
-
-            // Ensure initiateValue is a tuple-like structure (e.g., a list of expressions) or a single value
-            if (initiateValue instanceof TupleExpression) {
-                List<Expression> initiateValues = ((TupleExpression) initiateValue).getExpressions();
-
-                // Ensure the number of identifiers matches the number of values
-                if (identifiers.size() == initiateValues.size()) {
-                    for (int i = 0; i < identifiers.size(); i++) {
-                        Identifier identifier = identifiers.get(i);
-                        Expression value = initiateValues.get(i);  // Get the corresponding value for the identifier
-
-                        if (identifier != null) {
-                            // Create a new symbol table item for the identifier with a variant type
-                            VariantTypeVariableDeclarationSymbolTableItem newSymbolItem = new VariantTypeVariableDeclarationSymbolTableItem(identifier.getName());
-
-                            // Set the initial value for this identifier
-                            newSymbolItem.setInitiateValue(value);
-
-                            try {
-                                // Add the new identifier to the symbol table using put()
-                                SymbolTable.top.put(newSymbolItem);
-                            } catch (ItemAlreadyExistsException e) {
-                                System.out.println("Error: Identifier " + identifier.getName() + " already exists in the current scope.");
-                            }
-                        }
-                    }
-                } else {
-                    System.out.println("Error: Mismatched number of identifiers and initiate values.");
-                }
-            }
-            // Handle the case where there is only a single value assigned to multiple identifiers
-            else if (initiateValue != null) {
-                if (identifiers.size() == 1) {
-                    Identifier identifier = identifiers.get(0);
-
-                    if (identifier != null) {
-                        // Create a new symbol table item for the identifier with a variant type
-                        VariantTypeVariableDeclarationSymbolTableItem newSymbolItem = new VariantTypeVariableDeclarationSymbolTableItem(identifier.getName());
-
-                        // Set the initial value for this identifier
-                        newSymbolItem.setInitiateValue(initiateValue);
-
-                        try {
-                            // Add the new identifier to the symbol table using put()
-                            SymbolTable.top.put(newSymbolItem);
-                        } catch (ItemAlreadyExistsException e) {
-                            System.out.println("Error: Identifier " + identifier.getName() + " already exists in the current scope.");
-                        }
-                    }
-                } else {
-                    System.out.println("Error: Multiple identifiers but single initiate value provided.");
-                }
-            }
-        }
-
 
         return null;
     }
@@ -1244,60 +964,28 @@ public class NameAnalyzer extends Visitor<Void> {
 
     @Override
     public Void visit(ModifierDefinition modifierDefinition) {
-        // Handle modifier identifier
-        if (modifierDefinition.getIdentifier() == null) {
-            System.out.println("Error: Modifier without an identifier.");
-            return null;
+        // Visit the identifier (Identifier) inside the ModifierDefinition
+        if (modifierDefinition.getIdentifier() != null) {
+            modifierDefinition.getIdentifier().accept(this);
         }
 
-        String modifierName = modifierDefinition.getIdentifier().getName();
-
-        // Create ModifierSymbolTableItem
-        ModifierDefinitionSymbolTableItem modifierSymbolTableItem = new ModifierDefinitionSymbolTableItem(
-                modifierName,
-                modifierDefinition.getParameterList(),
-                modifierDefinition.getScope()
-        );
-
-        // Add modifier to the symbol table
-        try {
-            SymbolTable.top.put(modifierSymbolTableItem);
-        } catch (ItemAlreadyExistsException e) {
-            System.out.println("Error: Modifier " + modifierName + " already declared in the current scope.");
-            return null;
-        }
-
-        // Create a new symbol table for the modifier's scope
-        SymbolTable modifierSymbolTable = new SymbolTable(SymbolTable.top);
-        modifierSymbolTableItem.setSymbolTable(modifierSymbolTable);
-        SymbolTable.push(modifierSymbolTable);  // Push the modifier's new scope
-
-        // Process the modifier's parameters
+        // Visit the parameterList (ParameterList) inside the ModifierDefinition
         if (modifierDefinition.getParameterList() != null) {
-            for (Parameter parameter : modifierDefinition.getParameterList().getParameters()) {
-                if (parameter != null) {
-                    try {
-                        SymbolTable.root.getItem(VariableDeclarationSymbolTableItem.START_KEY + parameter.getIdentifier().getName(), true);
-                        System.out.println("Error: Parameter " + parameter.getIdentifier().getName() + " conflicts with a global variable.");
-                    } catch (ItemNotFoundException ignored) {
-                        parameter.accept(this);  // Process parameter declaration
-                    }
-                }
-            }
+            modifierDefinition.getParameterList().accept(this);
         }
 
-        // Process the modifier's block scope (local variables and statements)
+        // Visit the modifier (Modifier) inside the ModifierDefinition
+        if (modifierDefinition.getModifier() != null) {
+            modifierDefinition.getModifier().accept(this);
+        }
+
+        // Visit the scope (Block) inside the ModifierDefinition
         if (modifierDefinition.getScope() != null) {
-            modifierDefinition.getScope().accept(this);  // Process the modifier's scope
+            modifierDefinition.getScope().accept(this);
         }
-
-        // Pop the modifier's symbol table after finishing the scope
-        SymbolTable.pop();
 
         return null;
     }
-
-
 
     @Override
     public Void visit(StateVariableDeclaration stateVariableDeclaration) {
@@ -1313,20 +1001,9 @@ public class NameAnalyzer extends Visitor<Void> {
             }
         }
 
-        // Create a StateVariableSymbolTableItem for the state variable
-        StateVariableSymbolTableItem stateVariableSymbolTableItem = new StateVariableSymbolTableItem(
-                stateVariableDeclaration.getName().getName(),
-                stateVariableDeclaration.getType(),
-                stateVariableDeclaration.getValue()
-        );
-
-        // Try to insert the state variable symbol into the current symbol table
-        try {
-            SymbolTable.top.put(stateVariableSymbolTableItem);
-        } catch (ItemAlreadyExistsException e) {
-            // If the state variable is already defined in the current scope, report an error
-            System.out.println("Error: State variable " + stateVariableDeclaration.getName().getName() + " already declared in the current scope.");
-            return null;
+        // Visit the name (Identifier) inside the StateVariableDeclaration
+        if (stateVariableDeclaration.getName() != null) {
+            stateVariableDeclaration.getName().accept(this);
         }
 
         // Visit the value (Expression) inside the StateVariableDeclaration
@@ -1334,12 +1011,28 @@ public class NameAnalyzer extends Visitor<Void> {
             stateVariableDeclaration.getValue().accept(this);
         }
 
-        return null;  // Since the method return type is Void
+        return null;
     }
-
 
     @Override
     public Void visit(OtherFunctionDescriptors otherFunctionDescriptors) {
         return null;
+    }
+
+    public boolean findItem(String item, Block block) {
+        this.isFound = false;
+        this.searchItem = item;
+        this.visit(block);
+        return this.isFound;
+    }
+
+    public boolean findAccessExpression(String master, String member, Block block) {
+        this.isFound = false;
+        this.master = master;
+        this.member = member;
+        this.visit(block);
+        this.master = "";
+        this.member = "";
+        return this.isFound;
     }
 }

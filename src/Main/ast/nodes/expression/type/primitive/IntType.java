@@ -19,4 +19,9 @@ public class IntType extends ElementaryTypeName {
     public void setNumberOfBits(String numberOfBits) {
         this.numberOfBits = numberOfBits;
     }
+
+    @Override
+    public String toString() {
+        return "IntType";
+    }
 }

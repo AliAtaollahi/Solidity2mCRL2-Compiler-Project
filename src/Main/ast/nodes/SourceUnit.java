@@ -116,4 +116,21 @@ public class SourceUnit extends Node{
     public void setUsingForDeclarations(ArrayList<UsingForDeclaration> usingForDeclarations) {
         this.usingForDeclarations = usingForDeclarations;
     }
+
+    public void removeContractDefinition(ContractDefinition contractDefinition) {
+        if (this.contractDefinitions.contains(contractDefinition)) {
+            this.contractDefinitions.remove(contractDefinition);
+        } else {
+            System.out.println("Contract definition not found: " + contractDefinition.getName());
+        }
+    }
+
+    public void removeFunctionDefinition(FunctionDefinition functionDefinition) {
+        if (this.functionDefinitions.contains(functionDefinition)) {
+            this.functionDefinitions.remove(functionDefinition);
+        } else {
+            System.out.println("Contract definition not found: " + functionDefinitions.getFirst());
+        }
+    }
+
 }

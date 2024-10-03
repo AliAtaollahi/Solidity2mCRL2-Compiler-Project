@@ -1,6 +1,5 @@
 pragma solidity ^0.8.0;
 
-
 // Library definition
 library Math {
     function add(uint a, uint b) public pure returns (uint) {

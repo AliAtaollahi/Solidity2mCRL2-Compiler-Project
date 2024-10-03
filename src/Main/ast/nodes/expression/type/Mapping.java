@@ -53,4 +53,19 @@ public class Mapping extends Type {
     public void setMappingValueName(Identifier mappingValueName) {
         this.mappingValueName = mappingValueName;
     }
+
+    @Override
+    public String toString() {
+        // Convert the mapping key type and name to a string, handling potential null values
+        String keyTypeString = (mappingKey != null) ? mappingKey.toString() : "Unknown Key Type";
+        String keyNameString = (mappingKeyName != null) ? mappingKeyName.toString() : "Unknown Key Name";
+
+        // Convert the mapping value type and name to a string, handling potential null values
+        String valueTypeString = (mappingValue != null) ? mappingValue.toString() : "Unknown Value Type";
+        String valueNameString = (mappingValueName != null) ? mappingValueName.toString() : "Unknown Value Name";
+
+        // Combine all components into a readable format
+        return "Mapping [Key: (" + keyTypeString + " " + keyNameString +
+                "), Value: (" + valueTypeString + " " + valueNameString + ")]";
+    }
 }

@@ -1,5 +1,6 @@
 package main.symbolTable.items;
 
+import main.ast.nodes.declaration.ContractDefinition;
 import main.ast.nodes.expression.primary.Type;
 import main.ast.nodes.expression.type.UserDefinedTypeName;
 import main.symbolTable.SymbolTable;
@@ -14,6 +15,8 @@ public class ContractDefinitionSymbolTableItem extends SymbolTableItem {
     private String contractName;
     private SymbolTable contractSymbolTable;
     private List<InheritanceSpecifier> inheritanceSpecifiers;
+    private Type type;
+    private ContractDefinition contractDefinition;
 
     public Type getType() {
         return type;
@@ -22,13 +25,11 @@ public class ContractDefinitionSymbolTableItem extends SymbolTableItem {
     public void setType(Type type) {
         this.type = type;
     }
-
-    private Type type;
-
-    public ContractDefinitionSymbolTableItem(String contractName, UserDefinedTypeName type) {
+    public ContractDefinitionSymbolTableItem(String contractName, UserDefinedTypeName type, ContractDefinition contractDefinition) {
         this.contractName = contractName;
         this.inheritanceSpecifiers = new ArrayList<>();
         this.type = type;
+        this.contractDefinition = contractDefinition;
     }
 
     @Override
@@ -61,5 +62,17 @@ public class ContractDefinitionSymbolTableItem extends SymbolTableItem {
     @Override
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    public ContractDefinition getContractDefinition() {
+        return contractDefinition;
+    }
+
+    public void setContractDefinition(ContractDefinition contractDefinition) {
+        this.contractDefinition = contractDefinition;
+    }
+
+    public void setInheritanceSpecifiers(List<InheritanceSpecifier> inheritanceSpecifiers) {
+        this.inheritanceSpecifiers = inheritanceSpecifiers;
     }
 }

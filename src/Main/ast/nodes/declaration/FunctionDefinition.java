@@ -2,8 +2,9 @@ package main.ast.nodes.declaration;
 
 import main.ast.nodes.declaration.utility.ModifierList;
 import main.ast.nodes.declaration.utility.ParameterList;
-import main.ast.nodes.expression.PrimaryExpression;
+import main.ast.nodes.expression.*;
 import main.ast.nodes.expression.primary.FunctionDescriptor;
+import main.ast.nodes.expression.primary.Identifier;
 import main.ast.nodes.statement.Block;
 import main.visitor.IVisitor;
 
@@ -62,5 +63,27 @@ public class FunctionDefinition extends ContractPart {
 
     public Block getScope() {
         return scope;
+    }
+
+    public static String extractName(Expression functionName) {
+        if (functionName instanceof Identifier) {
+            return ((Identifier) functionName).getName();
+        } else if (functionName instanceof ObjectCreation) {
+            return "ObjectCreation_" + ((ObjectCreation) functionName).getType().toString();
+        } else if (functionName instanceof AccessExpression) {
+            AccessExpression accessExpr = (AccessExpression) functionName;
+            return "MethodCall_" + accessExpr.getMember().getName();
+        } else if (functionName instanceof StructInitializationExpression) {
+            StructInitializationExpression structInit = (StructInitializationExpression) functionName;
+            if (structInit.getName() instanceof Identifier) {
+                return "StructInitialization_" + ((Identifier) structInit.getName()).getName();
+            } else {
+                return "StructInitialization_" + extractName(structInit.getName());
+            }
+        } else if (functionName instanceof FunctionCallExpression) {
+            return extractName(((FunctionCallExpression) functionName).getFunctionName());
+        } else {
+            return functionName.toString();
+        }
     }
 }

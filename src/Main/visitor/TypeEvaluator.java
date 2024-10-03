@@ -33,6 +33,7 @@ import static main.ast.nodes.expression.operators.UserDefinableOperator.*;
 public class TypeEvaluator extends Visitor<Type> {
 
     private SymbolTable symbolTable;
+    private SymbolTableItem currentItemFoundFromSymbolTable;
 
     public TypeEvaluator(SymbolTable symbolTable_) {
         this.symbolTable = symbolTable_;
@@ -162,6 +163,7 @@ public class TypeEvaluator extends Visitor<Type> {
         try {
             if (functionName instanceof Identifier) {
                 SymbolTableItem functionItem = this.symbolTable.getFunctionItem(functionName, args, this);
+                this.currentItemFoundFromSymbolTable = functionItem;
                 if (functionItem instanceof FunctionDefinitionSymbolTableItem) {
                     // Get the return type of the function from the function definition
                     FunctionDefinitionSymbolTableItem functionSymbolItem = (FunctionDefinitionSymbolTableItem) functionItem;
@@ -221,6 +223,7 @@ public class TypeEvaluator extends Visitor<Type> {
                 // Now we need to look up the member in this contract's symbol table
                 String memberName = accessExpression.getMember().getName();
                 SymbolTableItem memberItem = contractSymbolTable.getItem(FunctionDefinition.START_KEY + memberName, true);
+                this.currentItemFoundFromSymbolTable = memberItem;
 
                 // If the member is found, return its type
                 if (memberItem instanceof VariableDeclarationSymbolTableItem) {
@@ -263,6 +266,7 @@ public class TypeEvaluator extends Visitor<Type> {
         try {
             // Look for the contract or struct in the symbol table
             SymbolTableItem item = this.symbolTable.getItem(typeName, true);
+            this.currentItemFoundFromSymbolTable = item;
 
             if (item instanceof ContractDefinitionSymbolTableItem) {
                 // If it's a contract, resolve the member (could be a variable or function)
@@ -390,35 +394,45 @@ public class TypeEvaluator extends Visitor<Type> {
     private Type resolveTypeFromIdentifier(Identifier identifier) {
         try {
             SymbolTableItem item = this.symbolTable.getItemDebugMode(VariableDeclarationSymbolTableItem.START_KEY + identifier.getName(), true);
+            this.currentItemFoundFromSymbolTable = item;
             if (item instanceof VariableDeclarationSymbolTableItem) {
                 return ((VariableDeclarationSymbolTableItem) item).getType();
             }
-        } catch (ItemNotFoundException e) {}
-        try {
-            SymbolTableItem item = this.symbolTable.getItemDebugMode(FunctionDefinition.START_KEY + identifier.getName(), true);
-            // TODO -> bayad ReturnParameterList barresi besheh
-            if (item != null && item instanceof FunctionDefinitionSymbolTableItem) {
-                return ((FunctionDefinitionSymbolTableItem) item).getReturnParameterList().getParameters().get(0).getType();
+        } catch (ItemNotFoundException e) {
+            try {
+                SymbolTableItem item = this.symbolTable.getItemDebugMode(FunctionDefinition.START_KEY + identifier.getName(), true);
+                this.currentItemFoundFromSymbolTable = item;
+                // TODO -> bayad ReturnParameterList barresi besheh
+                if (item != null && item instanceof FunctionDefinitionSymbolTableItem) {
+                    return ((FunctionDefinitionSymbolTableItem) item).getReturnParameterList().getParameters().get(0).getType();
+                }
+            } catch (ItemNotFoundException e1) {
             }
-        } catch (ItemNotFoundException e) {}
-        try {
-            SymbolTableItem item = this.symbolTable.getItemDebugMode(StructInitializationExpression.START_KEY + identifier.getName(), true);
-            if (item != null && item instanceof StructDefinitionSymbolTableItem) {
-                return ((StructDefinitionSymbolTableItem)item).getType();
+            try {
+                SymbolTableItem item = this.symbolTable.getItemDebugMode(StructInitializationExpression.START_KEY + identifier.getName(), true);
+                this.currentItemFoundFromSymbolTable = item;
+                if (item != null && item instanceof StructDefinitionSymbolTableItem) {
+                    return ((StructDefinitionSymbolTableItem) item).getType();
+                }
+            } catch (ItemNotFoundException e1) {
             }
-        } catch (ItemNotFoundException e) {}
-        try {
-            SymbolTableItem item = this.symbolTable.getItemDebugMode(StateVariableSymbolTableItem.START_KEY + identifier.getName(), true);
-            if (item != null && item instanceof StateVariableSymbolTableItem) {
-                return ((StateVariableSymbolTableItem)item).getType();
+            try {
+                SymbolTableItem item = this.symbolTable.getItemDebugMode(StateVariableSymbolTableItem.START_KEY + identifier.getName(), true);
+                this.currentItemFoundFromSymbolTable = item;
+                if (item != null && item instanceof StateVariableSymbolTableItem) {
+                    return ((StateVariableSymbolTableItem) item).getType();
+                }
+            } catch (ItemNotFoundException e1) {
             }
-        } catch (ItemNotFoundException e) {}
-        try {
-            SymbolTableItem item = this.symbolTable.getItemDebugMode(ContractDefinitionSymbolTableItem.START_KEY + identifier.getName(), true);
-            if (item != null && item instanceof ContractDefinitionSymbolTableItem) {
-                return ((ContractDefinitionSymbolTableItem)item).getType();
+            try {
+                SymbolTableItem item = this.symbolTable.getItemDebugMode(ContractDefinitionSymbolTableItem.START_KEY + identifier.getName(), true);
+                this.currentItemFoundFromSymbolTable = item;
+                if (item != null && item instanceof ContractDefinitionSymbolTableItem) {
+                    return ((ContractDefinitionSymbolTableItem) item).getType();
+                }
+            } catch (ItemNotFoundException e1) {
             }
-        } catch (ItemNotFoundException e) {}
+        }
 
         System.out.println("fallback function called");
         return new NoType();
@@ -426,6 +440,46 @@ public class TypeEvaluator extends Visitor<Type> {
 
     @Override
     public Type visit(Expression expression) {
+        if (expression instanceof AccessExpression) {
+            return this.visit((AccessExpression) expression);
+        } else if (expression instanceof BinaryExpression) {
+            return this.visit((BinaryExpression) expression);
+        } else if (expression instanceof FunctionCallExpression) {
+            return this.visit((FunctionCallExpression) expression);
+        } else if (expression instanceof ObjectCreation) {
+            return this.visit((ObjectCreation) expression);
+        } else if (expression instanceof StructInitializationExpression) {
+            return this.visit((StructInitializationExpression) expression);
+        } else if (expression instanceof UnaryExpression) {
+            return this.visit((UnaryExpression) expression);
+        } else if (expression instanceof Modifier) {
+            return this.visit((Modifier) expression);
+        } else if (expression instanceof TernaryOperatorExpression) {
+            return this.visit((TernaryOperatorExpression) expression);
+        } else if (expression instanceof RequireExpression) {
+            return this.visit((RequireExpression) expression);
+        } else if (expression instanceof TupleExpression) {
+            return this.visit((TupleExpression) expression);
+        } else if (expression instanceof ParenthesizedExpression) {
+            return this.visit((ParenthesizedExpression) expression);
+        } else if (expression instanceof NumberLiteral) {
+            return this.visit((NumberLiteral) expression);
+        } else if (expression instanceof StringLiteral) {
+            return this.visit((StringLiteral) expression);
+        } else if (expression instanceof Identifier) {
+            return this.visit((Identifier) expression);
+        } else {
+            System.out.println("Unknown Expression Type: " + expression.getClass().getSimpleName());
+        }
+
         return null;
+    }
+
+    public SymbolTableItem getCurrentItemFoundFromSymbolTable() {
+        return currentItemFoundFromSymbolTable;
+    }
+
+    public void setCurrentItemFoundFromSymbolTable(SymbolTableItem currentItemFoundFromSymbolTable) {
+        this.currentItemFoundFromSymbolTable = currentItemFoundFromSymbolTable;
     }
 }

@@ -35,6 +35,7 @@ contract Contract2 {
 
     function updateContract1Value(uint256 _value) public {
         contract1Instance.setValue(_value); // Use Contract1's function
+        contract1Instance.getValue(_value); // Use Contract1's functio
     }
 
     function getContract1Value() public view returns (uint256) {
@@ -51,7 +52,7 @@ contract Contract3 {
 
     // This function calls a function from Contract1 via Contract2
     function updateContract1ValueThroughContract2(uint256 _value) public {
-        _value = contract2Instance.contract1Instance.contract0Instance.getValue(); // Access Contract1's function via Contract2
+        _value = contract2Instance.contract1Instance.getValue(); // Access Contract1's function via Contract2
     }
 
 //    function getContract1ValueThroughContract2() public view returns (uint256) {

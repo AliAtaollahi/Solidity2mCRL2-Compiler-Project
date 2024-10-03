@@ -37,4 +37,9 @@ public class ListType extends Type {
     public void setSize(Expression size) {
         this.size = size;
     }
+
+    @Override
+    public String toString() {
+        return "ListType";
+    }
 }

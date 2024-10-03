@@ -4,10 +4,8 @@ package main;
 
 import main.ast.nodes.SourceUnit;
 import main.symbolTable.SymbolTable;
-import main.visitor.DependencyDetector;
-import main.visitor.ExclusionAnalyzer;
+import main.visitor.*;
 
-import main.visitor.NameAnalyzer;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -30,13 +28,18 @@ public class Solidity {
         nameAnalyzer.visit(sourceUnit);
         SymbolTable.root.hashCode();
 
-        // Serialize and save to file
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        String json = gson.toJson(sourceUnit);
 
-        DependencyDetector dependencyDetector = new DependencyDetector();
-        dependencyDetector.visit(sourceUnit);
-        ExclusionAnalyzer exclusionAnalyzer = new ExclusionAnalyzer();
-        exclusionAnalyzer.visit(sourceUnit);
+//        // Serialize and save to file
+//        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//        String json = gson.toJson(sourceUnit);
+
+//        DependencyDetector dependencyDetector = new DependencyDetector();
+//        dependencyDetector.visit(sourceUnit);
+//        ExclusionAnalyzer exclusionAnalyzer = new ExclusionAnalyzer();
+//        exclusionAnalyzer.visit(sourceUnit);
+        NewExclusionAnalyzer newExclusionAnalyzer = new NewExclusionAnalyzer();
+        newExclusionAnalyzer.visit(sourceUnit);
+        SymbolTable.root.hashCode();
+
     }
 }

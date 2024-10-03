@@ -74,4 +74,12 @@ public class ContractDefinition extends Declaration {
     public void setContractType(ContractType contractType) {
         this.contractType = contractType;
     }
+
+    public void removeFunctionDefinition(FunctionDefinition functionDefinition) {
+        if (this.contractParts.contains(functionDefinition)) {
+            this.contractParts.remove(functionDefinition);
+        } else {
+            System.out.println("Contract definition not found: " + contractParts.getFirst());
+        }
+    }
 }

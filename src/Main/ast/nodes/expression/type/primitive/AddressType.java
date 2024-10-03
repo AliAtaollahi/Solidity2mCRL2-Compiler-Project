@@ -4,6 +4,11 @@ import main.visitor.IVisitor;
 
 public class AddressType extends ElementaryTypeName {
     public AddressType() {}
+
+    @Override
+    public String toString() {
+        return "AddressType";
+    }
     @Override
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);

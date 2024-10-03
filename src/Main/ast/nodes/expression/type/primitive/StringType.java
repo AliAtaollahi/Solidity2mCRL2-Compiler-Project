@@ -8,4 +8,9 @@ public class StringType extends ElementaryTypeName {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    @Override
+    public String toString() {
+        return "StringType";
+    }
 }

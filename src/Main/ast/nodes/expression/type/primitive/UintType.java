@@ -20,4 +20,9 @@ public class UintType extends ElementaryTypeName {
     public void setNumberOfBits(String numberOfBits) {
         this.numberOfBits = numberOfBits;
     }
+
+    @Override
+    public String toString() {
+        return "UintType";
+    }
 }

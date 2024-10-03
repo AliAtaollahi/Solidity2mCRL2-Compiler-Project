@@ -245,7 +245,7 @@ class TypeEvaluatorTest {
         functionDefinition.setReturnParameterList(returnParams);
 
         // Add the function to the symbol table, including its input and return parameters
-        FunctionDefinitionSymbolTableItem functionItem = new FunctionDefinitionSymbolTableItem("someFunction");
+        FunctionDefinitionSymbolTableItem functionItem = new FunctionDefinitionSymbolTableItem("someFunction", functionDefinition, null);
         functionItem.setReturnParameterList(returnParams);  // Set the return parameters for the function
         functionItem.setSymbolTable(new SymbolTable());  // Create a new symbol table for the function's scope
 

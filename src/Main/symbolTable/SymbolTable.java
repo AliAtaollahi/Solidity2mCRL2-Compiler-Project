@@ -120,7 +120,7 @@ public class SymbolTable {
                     FunctionDefinitionSymbolTableItem functionItem = (FunctionDefinitionSymbolTableItem) item;
 
                     if (functionName instanceof Identifier) {
-                        if (functionItem.getKey().equals(FunctionDefinition.START_KEY + extractName(functionName))) {
+                        if (functionItem.getKey().equals(FunctionDefinition.START_KEY + FunctionDefinition.extractName(functionName))) {
                             // Check if argument types match
                             if (areArgumentTypesMatching(functionItem, args, typeEvaluator)) {
                                 return functionItem;
@@ -134,30 +134,6 @@ public class SymbolTable {
 
         throw new ItemNotFoundException();
     }
-
-    // Helper method to extract the name from the functionName Expression
-    private String extractName(Expression functionName) {
-        if (functionName instanceof Identifier) {
-            return ((Identifier) functionName).getName();
-        } else if (functionName instanceof ObjectCreation) {
-            return "ObjectCreation_" + ((ObjectCreation) functionName).getType().toString();
-        } else if (functionName instanceof AccessExpression) {
-            AccessExpression accessExpr = (AccessExpression) functionName;
-            return "MethodCall_" + accessExpr.getMember().getName();
-        } else if (functionName instanceof StructInitializationExpression) {
-            StructInitializationExpression structInit = (StructInitializationExpression) functionName;
-            if (structInit.getName() instanceof Identifier) {
-                return "StructInitialization_" + ((Identifier) structInit.getName()).getName();
-            } else {
-                return "StructInitialization_" + extractName(structInit.getName());
-            }
-        } else if (functionName instanceof FunctionCallExpression) {
-            return extractName(((FunctionCallExpression) functionName).getFunctionName());
-        } else {
-            return functionName.toString();
-        }
-    }
-
 
     // Helper method to match argument types with function signature
     private boolean areArgumentTypesMatching(FunctionDefinitionSymbolTableItem functionItem, FunctionCallArguments args, TypeEvaluator typeEvaluator) {
@@ -357,5 +333,11 @@ public class SymbolTable {
         throw new ItemNotFoundException();
     }
 
-
+    public boolean deleteItem(String key) {
+        if (this.items.containsKey(key)) {
+            this.items.remove(key);
+            return true;
+        }
+        return false;
+    }
 }
