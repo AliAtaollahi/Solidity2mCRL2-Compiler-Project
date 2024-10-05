@@ -14,6 +14,14 @@ public class ContractDefinition extends Declaration {
     private boolean isAbstract = false;
 
     private ContractType contractType;
+    private ArrayList<Identifier> identifiers = new ArrayList<>();
+    public void addIdentifier(Identifier identifier) {
+        this.identifiers.add(identifier);
+    }
+
+    public ArrayList<Identifier> getIdentifiers() {
+        return this.identifiers;
+    }
 
     public ContractDefinition(Identifier name, String contractType) {
         this.name = name;

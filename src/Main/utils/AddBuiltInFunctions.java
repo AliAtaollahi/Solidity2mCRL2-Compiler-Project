@@ -28,7 +28,7 @@ public class AddBuiltInFunctions {
                 modifiedFileContent.append(line);
 
                 // Insert the built-in functions on the same line after 'contract'
-                if (line.contains("contract")) {
+                if (line.contains("contract ")) {
                     modifiedFileContent.append(BUILT_IN_FUNCTIONS);
                 }
 

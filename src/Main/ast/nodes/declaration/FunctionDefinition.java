@@ -8,6 +8,8 @@ import main.ast.nodes.expression.primary.Identifier;
 import main.ast.nodes.statement.Block;
 import main.visitor.IVisitor;
 
+import java.util.ArrayList;
+
 public class FunctionDefinition extends ContractPart {
     public static String START_KEY = "Function_";
     public static String Constructor_KEY = "constructor";
@@ -16,6 +18,14 @@ public class FunctionDefinition extends ContractPart {
     private ModifierList modifierList;
     private ParameterList returnParameterList;
     private Block scope;
+    private ArrayList<Identifier> identifiers = new ArrayList<>();
+    public void addIdentifier(Identifier identifier) {
+        this.identifiers.add(identifier);
+    }
+
+    public ArrayList<Identifier> getIdentifiers() {
+        return this.identifiers;
+    }
 
     public FunctionDefinition(PrimaryExpression functionDescriptor, ParameterList parameterList, ModifierList modifierList) {
         this.functionDescriptor = functionDescriptor;

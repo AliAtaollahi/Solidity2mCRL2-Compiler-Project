@@ -58,7 +58,7 @@ public class NewExclusionAnalyzer extends Visitor<Void> {
                     symbolTable.items.entrySet().remove(entry);
                 }
                 // Rule 8 of elimination rules
-                else if (tempItem.getContractSymbolTable().getItemsSize() == 0) {
+                else if (tempItem.getContractSymbolTable().getItemsSize() <= 4) {
                     ContractDefinition mustDeletedContractDefinition = tempItem.getContractDefinition();
                     this.deletedContractDefinitions.add(mustDeletedContractDefinition);
                     sourceUnit.removeContractDefinition(mustDeletedContractDefinition);

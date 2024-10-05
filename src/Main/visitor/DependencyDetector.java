@@ -85,6 +85,16 @@ public class DependencyDetector extends Visitor<Void> {
         Type type = typeEvaluator.visit(functionCallSymbolTableItem.getFunctionCallExpression());
         SymbolTableItem item = typeEvaluator.getCurrentItemFoundFromSymbolTable();
 
+        // Rule 1
+        if (item instanceof FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem) {
+            if (functionName instanceof AccessExpression) {
+                String temp = ((AccessExpression) functionName).getMember().getName();
+                if (temp.equals("send") || temp.equals("transfer") || temp.equals("delegatecall")) {
+                    this.initNodes.add(this.currentFunctionDefinitionNode);
+                }
+            }
+        }
+
         if (item instanceof FunctionDefinitionSymbolTableItem calledFunctionData) {
             DependencyNode calledFunction = new DependencyNode(item, calledFunctionData.getContractDefinitionContainer());
             this.dependencyTree.addDependency(this.currentFunctionDefinitionNode, calledFunction);
@@ -192,6 +202,7 @@ public class DependencyDetector extends Visitor<Void> {
             item.accept(this);
         }
 
+        // Rule 2, 3
         if(functionDefinitionSymbolTableItem.getScope() != null) {
             if (this.expressionAnalyzer.findItem("delegatecall", functionDefinitionSymbolTableItem.getScope())) {
                 this.initNodes.add(this.currentFunctionDefinitionNode);

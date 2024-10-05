@@ -29,6 +29,7 @@ import java.util.Map;
 
 public class NameAnalyzer extends Visitor<Void> {
     private ContractDefinition currentContractDefinition;
+    private FunctionDefinition currentfunctionDefinition;
     private Statement currentStatement;
 
     @Override
@@ -43,8 +44,10 @@ public class NameAnalyzer extends Visitor<Void> {
 
         // Visit all ContractDefinitions
         for (ContractDefinition contractDefinition : sourceUnit.getContractDefinitions()) {
+            this.currentContractDefinition = contractDefinition;
             contractDefinition.accept(this);
         }
+        this.currentContractDefinition = null;
 
         // Visit all EnumDefinitions
         for (EnumDefinition enumDefinition : sourceUnit.getEnumDefinitions()) {
@@ -57,10 +60,11 @@ public class NameAnalyzer extends Visitor<Void> {
         }
 
         // Visit all FunctionDefinitions
-        currentContractDefinition = null;
         for (FunctionDefinition functionDefinition : sourceUnit.getFunctionDefinitions()) {
+            this.currentfunctionDefinition = functionDefinition;
             functionDefinition.accept(this);
         }
+        this.currentfunctionDefinition = null;
 
         // Visit all FileLevelConstants
         for (FileLevelConstant fileLevelConstant : sourceUnit.getFileLevelConstants()) {
@@ -82,6 +86,14 @@ public class NameAnalyzer extends Visitor<Void> {
 
     @Override
     public Void visit(Identifier identifier) {
+        if (this.currentfunctionDefinition != null) {
+            this.currentfunctionDefinition.addIdentifier(identifier);
+        }
+
+        if (this.currentContractDefinition != null) {
+            this.currentContractDefinition.addIdentifier(identifier);
+        }
+
         return null;
     }
 
@@ -169,7 +181,7 @@ public class NameAnalyzer extends Visitor<Void> {
                 contractSymbolTableItem.addInheritanceSpecifier(inheritanceSpecifier);  // Add to contract symbol
                 try {
                     if (inheritanceSpecifier.getType() instanceof UserDefinedTypeName) {
-                        SymbolTableItem symbolTableItem = SymbolTable.root.getItemDebugMode(ContractDefinitionSymbolTableItem.START_KEY + ((UserDefinedTypeName) (inheritanceSpecifier.getType())).getTypeChain().get(0).getName(), true);
+                        SymbolTableItem symbolTableItem = SymbolTable.root.getItem(ContractDefinitionSymbolTableItem.START_KEY + ((UserDefinedTypeName) (inheritanceSpecifier.getType())).getTypeChain().get(0).getName(), true);
                         if (symbolTableItem instanceof ContractDefinitionSymbolTableItem) {
                             SymbolTable parentSymbolTable = ((ContractDefinitionSymbolTableItem) symbolTableItem).getContractSymbolTable();
                             for (Map.Entry<String, SymbolTableItem> entry : parentSymbolTable.items.entrySet()) {
@@ -190,7 +202,10 @@ public class NameAnalyzer extends Visitor<Void> {
         for (ContractPart contractPart : contractDefinition.getContractParts()) {
             if (contractPart != null) {
                 cleanContractParts.add(contractPart);
+                if (contractPart instanceof FunctionDefinition)
+                    this.currentfunctionDefinition = (FunctionDefinition) contractPart;
                 contractPart.accept(this);  // Visit the contract part
+                this.currentfunctionDefinition = null;
             }
         }
 
