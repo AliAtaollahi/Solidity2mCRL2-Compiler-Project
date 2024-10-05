@@ -27,6 +27,7 @@ public class FunctionDefinitionSymbolTableItem extends SymbolTableItem {
         this.functionName = functionName;
         this.functionDefinitionPointer = functionDefinition;
         this.contractDefinitionContainer = contractDefinition;
+        this.setLine(functionDefinition.getLine());
     }
 
     @Override

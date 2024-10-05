@@ -30,6 +30,7 @@ public class ContractDefinitionSymbolTableItem extends SymbolTableItem {
         this.inheritanceSpecifiers = new ArrayList<>();
         this.type = type;
         this.contractDefinition = contractDefinition;
+        this.setLine(contractDefinition.getLine());
     }
 
     @Override

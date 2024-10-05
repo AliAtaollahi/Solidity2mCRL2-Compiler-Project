@@ -99,6 +99,7 @@ contract SomeCoin is ERC20 {
         _mint(msg.sender, 1000000000);
     }
 }
+
 contract Example {
     // DONT USE THIS AS IS                                                                                                                                                                                                                                                                                                     
     // IT ALLOWS ANYONE TO TRANSFER TOKENS OUT                                                                                                                                                                                                                                                                                 

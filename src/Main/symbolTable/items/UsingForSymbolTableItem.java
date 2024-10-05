@@ -12,6 +12,7 @@ public class UsingForSymbolTableItem extends SymbolTableItem {
         this.usingForObject = usingForObject;
         this.targetType = targetType;
         this.isGlobal = isGlobal;
+        this.setLine(usingForObject.getLine());
     }
 
     @Override

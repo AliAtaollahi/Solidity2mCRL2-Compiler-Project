@@ -2,11 +2,13 @@ package main.ast.nodes.expression;
 
 import main.ast.nodes.declaration.utility.FunctionCallArguments;
 import main.ast.nodes.expression.primary.Identifier;
+import main.ast.nodes.statement.Statement;
 import main.visitor.IVisitor;
 
 public class FunctionCallExpression extends Expression{
     private Expression functionName;
     private FunctionCallArguments args;
+    private Expression forUrgeTimes;
 
     public FunctionCallExpression(Expression functionName, FunctionCallArguments args) {
         this.functionName = functionName;
@@ -30,5 +32,13 @@ public class FunctionCallExpression extends Expression{
 
     public void setArgs(FunctionCallArguments args) {
         this.args = args;
+    }
+
+    public Expression getForUrgeTimes() {
+        return forUrgeTimes;
+    }
+
+    public void setForUrgeTimes(Expression forUrgeTimes) {
+        this.forUrgeTimes = forUrgeTimes;
     }
 }

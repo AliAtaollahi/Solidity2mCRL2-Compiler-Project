@@ -1,6 +1,7 @@
 package main.symbolTable.items;
 
 import main.ast.nodes.expression.Expression;
+import main.ast.nodes.expression.primary.Identifier;
 import main.ast.nodes.expression.primary.Type;
 import main.visitor.IVisitor;
 
@@ -10,10 +11,11 @@ public class VariantTypeVariableDeclarationSymbolTableItem extends SymbolTableIt
     protected Expression initiateValue;           // The initialization value of the variable
 
     // Constructor to create the symbol table item for a variable with a variant type
-    public VariantTypeVariableDeclarationSymbolTableItem(String name) {
-        this.name = name;
+    public VariantTypeVariableDeclarationSymbolTableItem(Identifier identifier) {
+        this.name = identifier.getName();
         this.type = null;  // Type will be assigned later if known
         this.initiateValue = null;  // By default, no initial value
+        this.setLine(identifier.getLine());
     }
 
     // Generates the unique key for the variable in the format "VarType_<name>"

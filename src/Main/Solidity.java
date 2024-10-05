@@ -17,29 +17,43 @@ import com.google.gson.GsonBuilder;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import java.io.*;
+import java.nio.file.*;
+
+import static main.utils.AddBuiltInFunctions.*;
+import static org.antlr.v4.runtime.misc.Utils.writeFile;
+
 public class Solidity {
-    public static void main(String[] args) throws IOException{
-        CharStream reader = CharStreams.fromFileName(args[0]);
-        SolidityLexer flLexer = new SolidityLexer(reader);
+    public static void main(String[] args) throws IOException {
+        String filePath = args[0];
+        String originalFileContent = readOriginalFileContent(filePath);
+        String modifiedContent = addBuiltInFunctionsToFile(filePath);
+        writeFile(filePath, modifiedContent);
+        CharStream readerInput = CharStreams.fromFileName(filePath);
+        SolidityLexer flLexer = new SolidityLexer(readerInput);
         CommonTokenStream tokens = new CommonTokenStream(flLexer);
         SolidityParser flParser = new SolidityParser(tokens);
+        writeOriginalFile(filePath, originalFileContent);
+
         SourceUnit sourceUnit = flParser.sourceUnit().sourceUnitRet;
+
+        // Name analysis
         NameAnalyzer nameAnalyzer = new NameAnalyzer();
         nameAnalyzer.visit(sourceUnit);
+
+        // Symbol table processing
         SymbolTable.root.hashCode();
 
+        // Dependency detection
+        DependencyDetector dependencyDetector = new DependencyDetector();
+        dependencyDetector.visit(sourceUnit);
 
-//        // Serialize and save to file
-//        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-//        String json = gson.toJson(sourceUnit);
-
-//        DependencyDetector dependencyDetector = new DependencyDetector();
-//        dependencyDetector.visit(sourceUnit);
-//        ExclusionAnalyzer exclusionAnalyzer = new ExclusionAnalyzer();
-//        exclusionAnalyzer.visit(sourceUnit);
+        // New exclusion analyzer
         NewExclusionAnalyzer newExclusionAnalyzer = new NewExclusionAnalyzer();
         newExclusionAnalyzer.visit(sourceUnit);
-        SymbolTable.root.hashCode();
 
+        // Final symbol table hash code to ensure no errors
+        SymbolTable.root.hashCode();
     }
 }
+

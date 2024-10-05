@@ -1,38 +1,29 @@
 package main.utils;
 
 import main.ast.nodes.declaration.ContractDefinition;
-import main.ast.nodes.declaration.FunctionDefinition;
-import main.ast.nodes.expression.primary.FunctionDescriptor;
-import main.ast.nodes.expression.primary.OtherFunctionDescriptors;
-
+import main.symbolTable.items.SymbolTableItem;
 import java.util.Objects;
 
-public class DependencyNode<T> {  // T is the generic type
-    private T itemKey;  // T replaces FunctionDefinition
+public class DependencyNode {
+    private SymbolTableItem itemKey;  // Changed from T to SymbolTableItem
     private ContractDefinition contractDefinitionKey;
     private String nameForDebug;
 
-    // Constructor with T as the type for functionDefinitionKey
-    public DependencyNode(T itemKey, ContractDefinition contractDefinitionKey) {
+    // Constructor accepting SymbolTableItem
+    public DependencyNode(SymbolTableItem itemKey, ContractDefinition contractDefinitionKey) {
         this.itemKey = itemKey;
         this.contractDefinitionKey = contractDefinitionKey;
-        String itemName = "";
-        if (itemKey instanceof FunctionDefinition) {
-            FunctionDefinition functionDefinition = (FunctionDefinition)itemKey;
-            itemName = (functionDefinition.getFunctionDescriptor() instanceof FunctionDescriptor) ?
-                    ((FunctionDescriptor) functionDefinition.getFunctionDescriptor()).getName().getName() :
-                    ((OtherFunctionDescriptors) functionDefinition.getFunctionDescriptor()).getName();
-        }
+        String itemName = itemKey.getKey();  // Now directly using getName from SymbolTableItem
         this.nameForDebug = itemName + "  ->  " + contractDefinitionKey.getName().getName();
     }
 
-    // Getter and setter for the generic type
-    public T getFunctionDefinitionKey() {
+    // Getter and setter for SymbolTableItem
+    public SymbolTableItem getItemKey() {
         return itemKey;
     }
 
-    public void setFunctionDefinitionKey(T functionDefinitionKey) {
-        this.itemKey = functionDefinitionKey;
+    public void setItemKey(SymbolTableItem itemKey) {
+        this.itemKey = itemKey;
     }
 
     public ContractDefinition getContractDefinitionKey() {
@@ -47,7 +38,7 @@ public class DependencyNode<T> {  // T is the generic type
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        DependencyNode<?> node = (DependencyNode<?>) o;
+        DependencyNode node = (DependencyNode) o;
         return Objects.equals(itemKey, node.itemKey) &&
                 Objects.equals(contractDefinitionKey, node.contractDefinitionKey);
     }

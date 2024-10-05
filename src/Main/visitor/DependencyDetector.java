@@ -3,6 +3,9 @@ package main.visitor;
 import main.ast.nodes.SourceUnit;
 import main.ast.nodes.declaration.*;
 import main.ast.nodes.expression.*;
+import main.ast.nodes.expression.type.primitive.AddressType;
+import main.ast.nodes.expression.type.primitive.BoolType;
+import main.ast.nodes.expression.type.primitive.ByteUpperCaseType;
 import main.ast.nodes.expression.value.*;
 import main.ast.nodes.expression.value.*;
 
@@ -12,20 +15,20 @@ import main.ast.nodes.declaration.utility.*;
 import main.ast.nodes.statement.Block;
 import main.ast.nodes.statement.Statement;
 import main.symbolTable.SymbolTable;
+import main.symbolTable.exceptions.ItemAlreadyExistsException;
 import main.symbolTable.items.*;
 import main.utils.DependencyNode;
 import main.utils.DependencyTree;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 public class DependencyDetector extends Visitor<Void> {
-    private DependencyTree<FunctionDefinition> dependencyTreeOfFunctions = new DependencyTree<FunctionDefinition>();
-    private DependencyTree<StructDefinition> dependencyTreeOfStructs = new DependencyTree<StructDefinition>();
-
+    private DependencyTree dependencyTree = new DependencyTree();
+    private Set<DependencyNode> initNodes = new HashSet<>();
     private FunctionDefinitionSymbolTableItem currentFunctionDefinition;
     private StructDefinitionSymbolTableItem currentStructDefinition;
+    private DependencyNode currentFunctionDefinitionNode;
+    private ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer();
 
     @Override
     public Void visit(SourceUnit sourceUnit) {
@@ -79,18 +82,15 @@ public class DependencyDetector extends Visitor<Void> {
     public Void visit(FunctionCallSymbolTableItem functionCallSymbolTableItem) {
         Expression functionName = functionCallSymbolTableItem.getFunctionName();
         TypeEvaluator typeEvaluator = new TypeEvaluator(functionCallSymbolTableItem.getCurrentSymbolTable());
-        Type type = typeEvaluator.visit(functionName);
+        Type type = typeEvaluator.visit(functionCallSymbolTableItem.getFunctionCallExpression());
         SymbolTableItem item = typeEvaluator.getCurrentItemFoundFromSymbolTable();
-        if (item instanceof FunctionDefinitionSymbolTableItem) {
-            FunctionDefinitionSymbolTableItem calledFunctionData = (FunctionDefinitionSymbolTableItem) item;
-            DependencyNode<FunctionDefinition> calledFunction = new DependencyNode<FunctionDefinition>(calledFunctionData.getFunctionDefinitionPointer(), calledFunctionData.getContractDefinitionContainer());
-            DependencyNode<FunctionDefinition> observerFucntion = new DependencyNode<FunctionDefinition>(this.currentFunctionDefinition.getFunctionDefinitionPointer(), this.currentFunctionDefinition.getContractDefinitionContainer());
-            this.dependencyTreeOfFunctions.addDependency(observerFucntion, calledFunction);
-        } else if (item instanceof StructDefinitionSymbolTableItem) {
-//            StructDefinitionSymbolTableItem calledStructData = (StructDefinitionSymbolTableItem) item;
-//            DependencyNode<StructDefinition> calledStruct = new DependencyNode<StructDefinition>(calledStructData.getFunctionDefinitionPointer(), calledFunctionData.getContractDefinitionContainer());
-//            DependencyNode<StructDefinition> observerStruct = new DependencyNode<StructDefinition>(this.currentStructDefinition.getFunctionDefinitionPointer(), this.currentFunctionDefinition.getContractDefinitionContainer());
-//            this.dependencyTreeOfStructs.addDependency(calledStruct, observerStruct);
+
+        if (item instanceof FunctionDefinitionSymbolTableItem calledFunctionData) {
+            DependencyNode calledFunction = new DependencyNode(item, calledFunctionData.getContractDefinitionContainer());
+            this.dependencyTree.addDependency(this.currentFunctionDefinitionNode, calledFunction);
+        } else if (item instanceof StructDefinitionSymbolTableItem calledStructData) {
+            DependencyNode calledStruct = new DependencyNode(item, calledStructData.getContractDefinition());
+            this.dependencyTree.addDependency(this.currentFunctionDefinitionNode, calledStruct);
         }
 //        if (functionName instanceof AccessExpression) {
 //            type = typeEvaluator.visit((AccessExpression) functionName);
@@ -179,6 +179,7 @@ public class DependencyDetector extends Visitor<Void> {
     @Override
     public Void visit(FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem) {
         this.currentFunctionDefinition = functionDefinitionSymbolTableItem;
+        this.currentFunctionDefinitionNode = new DependencyNode(this.currentFunctionDefinition, this.currentFunctionDefinition.getContractDefinitionContainer());
 
         // Create a list of items from the symbol table
         List<SymbolTableItem> sortedItems = new ArrayList<>(functionDefinitionSymbolTableItem.getSymbolTable().items.values());
@@ -190,6 +191,15 @@ public class DependencyDetector extends Visitor<Void> {
         for (SymbolTableItem item : sortedItems) {
             item.accept(this);
         }
+
+        if(functionDefinitionSymbolTableItem.getScope() != null) {
+            if (this.expressionAnalyzer.findItem("delegatecall", functionDefinitionSymbolTableItem.getScope())) {
+                this.initNodes.add(this.currentFunctionDefinitionNode);
+            } else if (this.expressionAnalyzer.findAccessExpression("tx", "origin", functionDefinitionSymbolTableItem.getScope())) {
+                this.initNodes.add(this.currentFunctionDefinitionNode);
+            }
+        }
+
         return null;
     }
 
@@ -199,5 +209,48 @@ public class DependencyDetector extends Visitor<Void> {
         } catch (Exception e) {
             return Integer.MAX_VALUE;
         }
+    }
+
+    public void addBuiltInFunctions() {
+//        SymbolTable symbolTable = SymbolTable.root;
+//        for (SymbolTableItem item : symbolTable.items.values()) {
+//            if (item instanceof ContractDefinitionSymbolTableItem) {
+//                Identifier functionDescriptor = new Identifier("delegatecall");
+//
+//                ParameterList parameterList = new ParameterList();
+//                Type type0 = new AddressType();
+//                Identifier identifier0 = new Identifier("Target");
+//                Parameter parameter0 = new Parameter(type0, "");
+//                parameter0.setIdentifier(identifier0);
+//                parameterList.addParameter(parameter0);
+//                Type type1 = new ByteUpperCaseType("");
+//                Identifier identifier1 = new Identifier("functionAddress");
+//                Parameter parameter1 = new Parameter(type1, "memory");
+//                parameter0.setIdentifier(identifier1);
+//                parameterList.addParameter(parameter1);
+//
+//                ModifierList modifierList = new ModifierList();
+//                OtherModifers otherModifers = new OtherModifers("public");
+//
+//                ParameterList returnParameterList = new ParameterList();
+//                Type type3 = new BoolType();
+//                Parameter parameter3 = new Parameter(type3, "");
+//                returnParameterList.addParameter(parameter3);
+//                Type type4 = new ByteUpperCaseType("");
+//                Parameter parameter4 = new Parameter(type4, "memory");
+//                returnParameterList.addParameter(parameter4);
+//
+//                FunctionDefinition functionDefinition = new FunctionDefinition(functionDescriptor, parameterList, modifierList);
+//                ((ContractDefinitionSymbolTableItem) item).getContractDefinition().addContractPart(functionDefinition);
+//                FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem = new FunctionDefinitionSymbolTableItem("delegatecall_builtIn", functionDefinition, ((ContractDefinitionSymbolTableItem) item).getContractDefinition());
+//                functionDefinitionSymbolTableItem.setSymbolTable(((ContractDefinitionSymbolTableItem) item).getContractSymbolTable());
+//                functionDefinitionSymbolTableItem.setContractDefinitionContainer(((ContractDefinitionSymbolTableItem) item).getContractDefinition());
+//                try {
+//                    ((ContractDefinitionSymbolTableItem)item).getContractSymbolTable().put(functionDefinitionSymbolTableItem);
+//                } catch (ItemAlreadyExistsException e) {
+//                    throw new RuntimeException(e);
+//                }
+//            }
+//        }
     }
 }

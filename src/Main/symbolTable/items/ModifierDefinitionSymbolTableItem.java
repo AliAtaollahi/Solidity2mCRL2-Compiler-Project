@@ -1,5 +1,6 @@
 package main.symbolTable.items;
 
+import main.ast.nodes.declaration.ModifierDefinition;
 import main.ast.nodes.declaration.utility.ParameterList;
 import main.ast.nodes.expression.primary.Identifier;
 import main.ast.nodes.statement.Block;
@@ -11,12 +12,15 @@ public class ModifierDefinitionSymbolTableItem extends SymbolTableItem {
     private ParameterList parameterList; // Parameters for the modifier
     private Block scope;                // Block (scope) of the modifier
     private SymbolTable symbolTable;    // Symbol table for the modifier's scope
+    private ModifierDefinition modifierDefinition;
 
     // Constructor
-    public ModifierDefinitionSymbolTableItem(String modifierName, ParameterList parameterList, Block scope) {
+    public ModifierDefinitionSymbolTableItem(String modifierName, ParameterList parameterList, Block scope, ModifierDefinition modifierDefinition) {
         this.modifierName = modifierName;
         this.parameterList = parameterList;
         this.scope = scope;
+        this.modifierDefinition = modifierDefinition;
+        this.setLine(modifierDefinition.getLine());
     }
 
     @Override

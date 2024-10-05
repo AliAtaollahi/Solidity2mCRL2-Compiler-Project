@@ -7,6 +7,18 @@ library Math {
     }
 }
 
+contract MyContract {
+    uint public value;
+
+    constructor(uint _value) {
+        value = _value;
+    }
+
+    constructor(uint _value, string meow) {
+        value = _value;
+    }
+}
+
 contract AllFunctionCallExpressions {
 
     // A struct definition for Deposit
@@ -52,7 +64,16 @@ contract AllFunctionCallExpressions {
     using Math for uint;  // Attach the Math library to the uint type
 
     // Function that demonstrates all types of FunctionCallExpressions
-    function demonstrateFunctionCalls() public payable {
+    function demonstrateFunctionCalls(uint meow) public payable {
+        // 8. Calling a contract constructor with `new`
+        MyContract newContractInstance = new MyContract(100, "Ali");
+
+        uint result1 = add(result1, result1);
+
+        // 7. Calling a function with a struct parameter
+        MyStruct memory myStruct = MyStruct(5, 10);
+        uint result5 = useStruct(myStruct);
+
         // 1. Calling a function with positional arguments
         uint result1 = add(5, 10);
 
@@ -70,13 +91,6 @@ contract AllFunctionCallExpressions {
 
         // 6. Calling a function that returns multiple values
         (uint a, uint b) = getMultipleValues();
-
-        // 7. Calling a function with a struct parameter
-        MyStruct memory myStruct = MyStruct(5, 10);
-        uint result5 = useStruct(myStruct);
-
-        // 8. Calling a contract constructor with `new`
-        MyContract newContractInstance = new MyContract(100);
 
         // 9. Calling a low-level function (fallback function)
 //        address(this).call{value: 1 ether}("");
@@ -115,12 +129,4 @@ contract AllFunctionCallExpressions {
 // An interface for another contract
 interface IMyInterface {
     function myFunction(uint a) external returns (uint);
-}
-
-contract MyContract {
-    uint public value;
-
-    constructor(uint _value) {
-        value = _value;
-    }
 }

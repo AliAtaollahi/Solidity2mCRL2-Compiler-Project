@@ -82,4 +82,12 @@ public class ContractDefinition extends Declaration {
             System.out.println("Contract definition not found: " + contractParts.getFirst());
         }
     }
+
+    public void removeStateVariableDeclaration(StateVariableDeclaration stateVariableDeclaration) {
+        if (this.contractParts.contains(stateVariableDeclaration)) {
+            this.contractParts.remove(stateVariableDeclaration);
+        } else {
+            System.out.println("Contract definition not found: " + contractParts.getFirst());
+        }
+    }
 }

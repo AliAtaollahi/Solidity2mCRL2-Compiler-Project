@@ -10,6 +10,7 @@ import main.visitor.IVisitor;
 
 public class FunctionDefinition extends ContractPart {
     public static String START_KEY = "Function_";
+    public static String Constructor_KEY = "constructor";
     private PrimaryExpression functionDescriptor;
     private ParameterList parameterList;
     private ModifierList modifierList;

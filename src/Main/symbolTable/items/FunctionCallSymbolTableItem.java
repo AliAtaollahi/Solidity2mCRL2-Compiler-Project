@@ -1,11 +1,9 @@
 package main.symbolTable.items;
 
 import main.ast.nodes.declaration.utility.FunctionCallArguments;
-import main.ast.nodes.expression.AccessExpression;
-import main.ast.nodes.expression.Expression;
-import main.ast.nodes.expression.ObjectCreation;
-import main.ast.nodes.expression.StructInitializationExpression;
+import main.ast.nodes.expression.*;
 import main.ast.nodes.expression.primary.Identifier;
+import main.ast.nodes.statement.Statement;
 import main.symbolTable.SymbolTable;
 import main.visitor.IVisitor;
 
@@ -16,6 +14,17 @@ public class FunctionCallSymbolTableItem extends SymbolTableItem {
     private int symbolTableSize;
     private boolean hasSimpleName;
 
+    public Statement getStatementCaller() {
+        return statementCaller;
+    }
+
+    public void setStatementCaller(Statement statementCaller) {
+        this.statementCaller = statementCaller;
+    }
+
+    private Statement statementCaller;
+
+
     public SymbolTable getCurrentSymbolTable() {
         return currentSymbolTable;
     }
@@ -25,13 +34,17 @@ public class FunctionCallSymbolTableItem extends SymbolTableItem {
     }
 
     private SymbolTable currentSymbolTable;
+    private FunctionCallExpression functionCallExpression;
 
-    public FunctionCallSymbolTableItem(Expression functionName, FunctionCallArguments args, int stackSize, SymbolTable top) {
+    public FunctionCallSymbolTableItem(Expression functionName, FunctionCallArguments args, int stackSize, SymbolTable top, FunctionCallExpression functionCallExpression, Statement statementCaller) {
         this.functionName = functionName;
         this.args = args;
         this.symbolTableSize = stackSize;
         this.hasSimpleName = (functionName instanceof Identifier);
         this.currentSymbolTable = top;
+        this.setLine(functionName.getLine());
+        this.functionCallExpression = functionCallExpression;
+        this.statementCaller = statementCaller;
     }
 
     @Override
@@ -83,5 +96,17 @@ public class FunctionCallSymbolTableItem extends SymbolTableItem {
     @Override
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    public void removeFunctionCallExpression() {
+
+    }
+
+    public FunctionCallExpression getFunctionCallExpression() {
+        return functionCallExpression;
+    }
+
+    public void setFunctionCallExpression(FunctionCallExpression functionCallExpression) {
+        this.functionCallExpression = functionCallExpression;
     }
 }

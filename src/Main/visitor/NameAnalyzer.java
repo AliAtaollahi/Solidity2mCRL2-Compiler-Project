@@ -25,9 +25,12 @@ import main.symbolTable.items.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class NameAnalyzer extends Visitor<Void> {
     private ContractDefinition currentContractDefinition;
+    private Statement currentStatement;
+
     @Override
     public Void visit(SourceUnit sourceUnit) {
         SymbolTable.push(new SymbolTable());
@@ -77,10 +80,10 @@ public class NameAnalyzer extends Visitor<Void> {
         return null;
     }
 
-//    @Override
-//    public Void visit(Identifier identifier) {
-//        return null;
-//    }
+    @Override
+    public Void visit(Identifier identifier) {
+        return null;
+    }
 
     @Override
     public Void visit(BinaryExpression binaryExpression) {
@@ -164,10 +167,25 @@ public class NameAnalyzer extends Visitor<Void> {
             if (inheritanceSpecifier != null) {
                 inheritanceSpecifier.accept(this);  // Visit the inheritance specifier
                 contractSymbolTableItem.addInheritanceSpecifier(inheritanceSpecifier);  // Add to contract symbol
+                try {
+                    if (inheritanceSpecifier.getType() instanceof UserDefinedTypeName) {
+                        SymbolTableItem symbolTableItem = SymbolTable.root.getItemDebugMode(ContractDefinitionSymbolTableItem.START_KEY + ((UserDefinedTypeName) (inheritanceSpecifier.getType())).getTypeChain().get(0).getName(), true);
+                        if (symbolTableItem instanceof ContractDefinitionSymbolTableItem) {
+                            SymbolTable parentSymbolTable = ((ContractDefinitionSymbolTableItem) symbolTableItem).getContractSymbolTable();
+                            for (Map.Entry<String, SymbolTableItem> entry : parentSymbolTable.items.entrySet()) {
+                                try {
+                                    SymbolTable.top.put(entry.getValue());
+                                } catch (ItemAlreadyExistsException ignored) {
+                                }
+                            }
+                        }
+                    }
+                } catch (ItemNotFoundException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
 
-        // Visit all contract parts (functions, variables, etc.)
         ArrayList<ContractPart> cleanContractParts = new ArrayList<>();
         for (ContractPart contractPart : contractDefinition.getContractParts()) {
             if (contractPart != null) {
@@ -176,22 +194,18 @@ public class NameAnalyzer extends Visitor<Void> {
             }
         }
 
-        // Update the contract definition with the clean list of contract parts
         contractDefinition.setContractParts(cleanContractParts);
 
-        // Pop the symbol table after finishing the contract scope
         SymbolTable.pop();
 
         return null;
     }
 
-
-
     @Override
     public Void visit(EnumDefinition enumDefinition) {
         Identifier enumNameId = enumDefinition.getName();
 
-        EnumDefinitionSymbolTableItem enumSymbolTableItem = new EnumDefinitionSymbolTableItem(enumNameId.getName());
+        EnumDefinitionSymbolTableItem enumSymbolTableItem = new EnumDefinitionSymbolTableItem(enumNameId.getName(), enumDefinition);
 
         try {
             SymbolTable.top.put(enumSymbolTableItem);
@@ -207,7 +221,7 @@ public class NameAnalyzer extends Visitor<Void> {
         int enumIndex = 0;
         for (EnumValue enumValue : enumDefinition.getEnumValues()) {
             if (enumValue != null) {
-                EnumValueSymbolTableItem enumValueItem = new EnumValueSymbolTableItem(enumValue.getValue().getName(), enumIndex);
+                EnumValueSymbolTableItem enumValueItem = new EnumValueSymbolTableItem(enumValue.getValue().getName(), enumIndex, enumValue);
 
                 try {
                     SymbolTable.top.put(enumValueItem);
@@ -230,7 +244,7 @@ public class NameAnalyzer extends Visitor<Void> {
         type.addChainRing(structNameId.getName());
         type.setLine(structDefinition.getLine());
 
-        StructDefinitionSymbolTableItem structSymbolTableItem = new StructDefinitionSymbolTableItem(structNameId.getName(), type);
+        StructDefinitionSymbolTableItem structSymbolTableItem = new StructDefinitionSymbolTableItem(structNameId.getName(), type, structDefinition, currentContractDefinition);
 
         try {
             SymbolTable.top.put(structSymbolTableItem);
@@ -261,7 +275,8 @@ public class NameAnalyzer extends Visitor<Void> {
         FileLevelConstantSymbolTableItem constantSymbolTableItem = new FileLevelConstantSymbolTableItem(
                 fileLevelConstant.getName().getName(),
                 fileLevelConstant.getType(),
-                fileLevelConstant.getValue()
+                fileLevelConstant.getValue(),
+                fileLevelConstant
         );
 
         try {
@@ -278,7 +293,7 @@ public class NameAnalyzer extends Visitor<Void> {
     public Void visit(CustomErrorDefinition customErrorDefinition) {
         Identifier errorNameId = customErrorDefinition.getName();
 
-        CustomErrorSymbolTableItem errorSymbolTableItem = new CustomErrorSymbolTableItem(errorNameId.getName());
+        CustomErrorSymbolTableItem errorSymbolTableItem = new CustomErrorSymbolTableItem(errorNameId.getName(), customErrorDefinition);
 
         try {
             SymbolTable.top.put(errorSymbolTableItem);
@@ -337,6 +352,23 @@ public class NameAnalyzer extends Visitor<Void> {
             return null;
         }
 
+        // for built-in functions
+        if (functionDescriptor instanceof FunctionDescriptor) {
+            String functionName_ = ((FunctionDescriptor) functionDescriptor).getName().getName();
+
+            if (functionName_ != null && functionName_.contains("_builtIn")) {
+                functionName_ = functionName_.replace("_builtIn", "");
+                ((FunctionDescriptor) functionDescriptor).getName().setName(functionName_); // Correctly update the name
+            }
+        } else if (functionDescriptor instanceof OtherFunctionDescriptors) {
+            String functionName_ = ((OtherFunctionDescriptors) functionDescriptor).getName();
+
+            if (functionName_ != null && functionName_.contains("_builtIn")) {
+                functionName_ = functionName_.replace("_builtIn", "");
+                ((OtherFunctionDescriptors) functionDescriptor).setName(functionName_); // Update the name for OtherFunctionDescriptors
+            }
+        }
+
         String functionName = (functionDescriptor instanceof FunctionDescriptor) ?
                 ((FunctionDescriptor) functionDescriptor).getName().getName() :
                 ((OtherFunctionDescriptors) functionDescriptor).getName();
@@ -367,8 +399,14 @@ public class NameAnalyzer extends Visitor<Void> {
         try {
             SymbolTable.top.put(functionSymbolTableItem);
         } catch (ItemAlreadyExistsException e) {
-            System.out.println("Error: Function " + functionName + " already declared in the current scope.");
-            return null;
+            // Remove the existing item if it already exists in the current symbol table
+            SymbolTable.top.deleteItem(functionSymbolTableItem.getKey());
+            // Add the new item from the parent symbol table
+            try {
+                SymbolTable.top.put(functionSymbolTableItem);
+            } catch (ItemAlreadyExistsException ex) {
+                throw new RuntimeException(ex);
+            }
         }
 
         // Create a new symbol table for the function's scope
@@ -739,7 +777,9 @@ public class NameAnalyzer extends Visitor<Void> {
                 functionCallExpression.getFunctionName(),
                 functionCallExpression.getArgs(),
                 SymbolTable.top.getItemsSize(),
-                SymbolTable.top
+                SymbolTable.top,
+                functionCallExpression,
+                this.currentStatement
         );
 
         // Try to insert the function call into the current symbol table
@@ -846,7 +886,8 @@ public class NameAnalyzer extends Visitor<Void> {
             ParameterSymbolTableItem paramSymbolTableItem = new ParameterSymbolTableItem(
                     parameter.getIdentifier().getName(),
                     parameter.getType(),
-                    parameter.getStorageLocation()
+                    parameter.getStorageLocation(),
+                    parameter
             );
 
             try {
@@ -950,6 +991,8 @@ public class NameAnalyzer extends Visitor<Void> {
         for (Statement statement : block.getStatements()) {
             if (statement != null) {
                 cleanStatements.add(statement);
+                statement.setBlock(block);
+                this.currentStatement = statement;
                 statement.accept(this);
             }
         }
@@ -1131,7 +1174,7 @@ public class NameAnalyzer extends Visitor<Void> {
 
                         if (identifier != null) {
                             // Create a new symbol table item for the identifier with a variant type
-                            VariantTypeVariableDeclarationSymbolTableItem newSymbolItem = new VariantTypeVariableDeclarationSymbolTableItem(identifier.getName());
+                            VariantTypeVariableDeclarationSymbolTableItem newSymbolItem = new VariantTypeVariableDeclarationSymbolTableItem(identifier);
 
                             // Set the initial value for this identifier
                             newSymbolItem.setInitiateValue(value);
@@ -1155,7 +1198,7 @@ public class NameAnalyzer extends Visitor<Void> {
 
                     if (identifier != null) {
                         // Create a new symbol table item for the identifier with a variant type
-                        VariantTypeVariableDeclarationSymbolTableItem newSymbolItem = new VariantTypeVariableDeclarationSymbolTableItem(identifier.getName());
+                        VariantTypeVariableDeclarationSymbolTableItem newSymbolItem = new VariantTypeVariableDeclarationSymbolTableItem(identifier);
 
                         // Set the initial value for this identifier
                         newSymbolItem.setInitiateValue(initiateValue);
@@ -1256,7 +1299,8 @@ public class NameAnalyzer extends Visitor<Void> {
         ModifierDefinitionSymbolTableItem modifierSymbolTableItem = new ModifierDefinitionSymbolTableItem(
                 modifierName,
                 modifierDefinition.getParameterList(),
-                modifierDefinition.getScope()
+                modifierDefinition.getScope(),
+                modifierDefinition
         );
 
         // Add modifier to the symbol table
@@ -1317,7 +1361,10 @@ public class NameAnalyzer extends Visitor<Void> {
         StateVariableSymbolTableItem stateVariableSymbolTableItem = new StateVariableSymbolTableItem(
                 stateVariableDeclaration.getName().getName(),
                 stateVariableDeclaration.getType(),
-                stateVariableDeclaration.getValue()
+                stateVariableDeclaration.getValue(),
+                stateVariableDeclaration,
+                SymbolTable.top,
+                this.currentContractDefinition
         );
 
         // Try to insert the state variable symbol into the current symbol table

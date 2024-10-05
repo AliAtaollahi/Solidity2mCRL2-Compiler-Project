@@ -12,11 +12,11 @@ import main.ast.nodes.expression.primary.*;
 import main.ast.nodes.expression.type.UserDefinedTypeName;
 import main.ast.nodes.statement.Statement;
 import main.symbolTable.SymbolTable;
+import main.symbolTable.exceptions.ItemNotFoundException;
 import main.symbolTable.items.*;
+import main.utils.TokensHandler;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 public class NewExclusionAnalyzer extends Visitor<Void> {
     private SourceUnit sourceUnit;
@@ -26,35 +26,43 @@ public class NewExclusionAnalyzer extends Visitor<Void> {
     private ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer();
     private Iterator<Map.Entry<String, SymbolTableItem>> currentIterator1;
     private Iterator<SymbolTableItem> currentIterator2;
+    private Map<String, List<String>> tokenContracts = new HashMap<>();
+    private TokensHandler tokensHandler = new TokensHandler();
+    private Iterator<SymbolTableItem> currentIterator3;
 
     @Override
     public Void visit(SourceUnit sourceUnit) {
+        for (String token : this.tokensHandler.getTokens()) {
+            TokensHandler.addToMap(tokenContracts, token, token);
+        }
+
         this.sourceUnit = sourceUnit;
         SymbolTable symbolTable = SymbolTable.root;
-        Iterator<Map.Entry<String, SymbolTableItem>> iterator = symbolTable.items.entrySet().iterator();
 
-        while (iterator.hasNext()) {
-            this.currentIterator1 = iterator;
-            Map.Entry<String, SymbolTableItem> entry = iterator.next();
+        List<Map.Entry<String, SymbolTableItem>> entries = new ArrayList<>(symbolTable.items.entrySet());
+        entries.sort(Comparator.comparingInt(entry -> entry.getValue().getLine()));
+        for (Map.Entry<String, SymbolTableItem> entry : entries) {
+            this.currentIterator1 = symbolTable.items.entrySet().iterator(); // Reset iterator to original set
+
             SymbolTableItem item = entry.getValue();
             item.accept(this);
 
+            // Rule 2 of elimination rules
             if (item instanceof ContractDefinitionSymbolTableItem) {
                 ContractDefinitionSymbolTableItem tempItem = (ContractDefinitionSymbolTableItem) item;
 
-                // Rule 2 of elimination rules
                 if (tempItem.getContractDefinition().getContractType().equals(ContractType.INTERFACE)) {
                     ContractDefinition mustDeletedContractDefinition = tempItem.getContractDefinition();
                     this.deletedContractDefinitions.add(mustDeletedContractDefinition);
                     sourceUnit.removeContractDefinition(mustDeletedContractDefinition);
-                    iterator.remove();
+                    symbolTable.items.entrySet().remove(entry);
                 }
                 // Rule 8 of elimination rules
                 else if (tempItem.getContractSymbolTable().getItemsSize() == 0) {
                     ContractDefinition mustDeletedContractDefinition = tempItem.getContractDefinition();
                     this.deletedContractDefinitions.add(mustDeletedContractDefinition);
                     sourceUnit.removeContractDefinition(mustDeletedContractDefinition);
-                    iterator.remove();
+                    symbolTable.items.entrySet().remove(entry);
                 }
             }
         }
@@ -77,6 +85,11 @@ public class NewExclusionAnalyzer extends Visitor<Void> {
                     for (ContractDefinition contractDefinition1 : this.deletedContractDefinitions) {
                         if (((UserDefinedTypeName) inheritanceSpecifier.getType()).getTypeChain().contains(contractDefinition1.getName())) {
                             check = false;
+                            String temp = ((UserDefinedTypeName) inheritanceSpecifier.getType()).getTypeChain().getFirst().getName();
+                            boolean res = TokensHandler.addToMapIfStringFound(this.tokenContracts, contractDefinitionSymbolTableItem.getContractName(), temp);
+                            if (res) {
+                                contractDefinitionSymbolTableItem.getContractDefinition().setContractType(ContractType.INTERFACE);
+                            }
                         }
                     }
                 }
@@ -128,6 +141,34 @@ public class NewExclusionAnalyzer extends Visitor<Void> {
 
     @Override
     public Void visit(FunctionCallSymbolTableItem functionCallSymbolTableItem) {
+        if (functionCallSymbolTableItem.getFunctionName() instanceof AccessExpression) {
+            if (((AccessExpression) functionCallSymbolTableItem.getFunctionName()).getMaster() instanceof Identifier) {
+                String nameOfCaller = ((Identifier)((AccessExpression) functionCallSymbolTableItem.getFunctionName()).getMaster()).getName();
+                try {
+                    SymbolTableItem item = functionCallSymbolTableItem.getCurrentSymbolTable().getItem(VariableDeclarationSymbolTableItem.START_KEY + nameOfCaller, true);
+                    String tokenName = ((UserDefinedTypeName)((VariableDeclarationSymbolTableItem)item).getType()).getTypeChain().get(0).getName();
+                    this.tokensHandler.buildByBuiltIn(tokenName, functionCallSymbolTableItem.getFunctionCallExpression());
+
+                } catch (ItemNotFoundException e) {
+                    try {
+                        SymbolTableItem item = functionCallSymbolTableItem.getCurrentSymbolTable().getItem(StateVariableSymbolTableItem.START_KEY + nameOfCaller, true);
+                        String tokenName = ((UserDefinedTypeName)((StateVariableSymbolTableItem)item).getType()).getTypeChain().get(0).getName();
+                        this.tokensHandler.buildByBuiltIn(tokenName, functionCallSymbolTableItem.getFunctionCallExpression());
+
+                    } catch (ItemNotFoundException e2) {
+
+                    }
+                }
+
+            }
+        }
+        else if (functionCallSymbolTableItem.getFunctionName() instanceof Identifier) {
+            String nameOfCaller = ((Identifier)functionCallSymbolTableItem.getFunctionName()).getName();
+            if (TokensHandler.justFoundIfStringFound(this.tokenContracts, nameOfCaller)) {
+                functionCallSymbolTableItem.getStatementCaller().getBlock().removeStatement(functionCallSymbolTableItem.getStatementCaller());
+                this.currentIterator3.remove();
+            }
+        }
 
         return null;
     }
@@ -158,6 +199,19 @@ public class NewExclusionAnalyzer extends Visitor<Void> {
 
     @Override
     public Void visit(StateVariableSymbolTableItem stateVariableSymbolTableItem) {
+        Type type = stateVariableSymbolTableItem.getType();
+        if (type instanceof UserDefinedTypeName) {
+            String name = ((UserDefinedTypeName)type).getTypeChain().get(0).getName();
+            if (TokensHandler.justFoundIfStringFound(this.tokenContracts, name)) {
+                ContractDefinition currentContractDefinition = stateVariableSymbolTableItem.getCurrentContractDefinition();
+                currentContractDefinition.removeStateVariableDeclaration(stateVariableSymbolTableItem.getStateVariableDeclaration());
+            }
+        }
+//        if (TokensHandler.justFoundIfStringFound(this.tokenContracts, nameOfCaller)) {
+//            functionCallSymbolTableItem.getStatementCaller().getBlock().removeStatement(functionCallSymbolTableItem.getStatementCaller());
+//            this.currentIterator3.remove();
+//        }
+
         return null;
     }
 
@@ -195,16 +249,21 @@ public class NewExclusionAnalyzer extends Visitor<Void> {
         }
 
         SymbolTable functionDefinitionSymbolTable = functionDefinitionSymbolTableItem.getSymbolTable();
-        for (SymbolTableItem item : functionDefinitionSymbolTable.items.values()) {
-            item.accept(this);
+        Iterator<SymbolTableItem> iterator = functionDefinitionSymbolTable.items.values().iterator();
+        while (iterator.hasNext()) {
+            this.currentIterator3 = iterator;  // Storing the current iterator
+            SymbolTableItem item = iterator.next();
+            item.accept(this);  // Accept each item
         }
         return null;
     }
 
     private void deleteFunctionDefinitionSymbolTableItem(FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem) {
         String functionKey = functionDefinitionSymbolTableItem.getKey();
+        this.deletedFunctionDefinitions.add(functionDefinitionSymbolTableItem.getFunctionDefinitionPointer());
         if(functionDefinitionSymbolTableItem.getContractDefinitionContainer() == null) {
             sourceUnit.removeFunctionDefinition(functionDefinitionSymbolTableItem.getFunctionDefinitionPointer());
+            this.deletedFunctionDefinitions.add(functionDefinitionSymbolTableItem.getFunctionDefinitionPointer());
             this.currentIterator1.remove();
         }
         else {

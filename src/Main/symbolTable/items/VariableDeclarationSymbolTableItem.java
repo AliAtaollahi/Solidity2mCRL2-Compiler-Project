@@ -15,6 +15,7 @@ public class VariableDeclarationSymbolTableItem extends SymbolTableItem {
         this.name = varDeclaration.getVariableName().getName();
         this.type = varDeclaration.getVariableType();
         this.initiateValue = null; // By default, no initial value
+        this.setLine(varDeclaration.getLine());
     }
 
     // Generates the unique key for the variable in the format "VarDeclaration_<name>"

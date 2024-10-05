@@ -1,4 +1,3 @@
-3. // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
 // NOTE: Deploy this contract first
@@ -20,14 +19,11 @@ contract A {
     address public sender;
     uint256 public value;
 
-    function setVars(address _contract, uint256 _num) public payable {
-// A's storage is set, B is not modified.
-    (bool success, bytes memory data) = _contract.delegatecall(
-        abi.encodeWithSignature("setVars(uint256)", _num)
+    function setVars(address _contract, uint256 num) public payable {
+        // A's storage is set, B is not modified.
+        (bool success, bytes memory data) = _contract.delegatecall(
+            abi.encodeWithSignature("setVars(uint256)", num)
         );
+        require(success, "Delegatecall failed");
     }
 }
-// We need the setVars function in contract A (Imagine that we have considered contract A)
-
-
-

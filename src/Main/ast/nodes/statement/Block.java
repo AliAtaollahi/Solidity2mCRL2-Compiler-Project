@@ -28,4 +28,8 @@ public class Block extends Statement {
     public void setStatements(ArrayList<Statement> statements) {
         this.statements = statements;
     }
+
+    public void removeStatement(Statement statement) {
+        this.statements.remove(statement);
+    }
 }

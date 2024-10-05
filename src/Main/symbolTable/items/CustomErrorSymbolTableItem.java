@@ -1,14 +1,18 @@
 package main.symbolTable.items;
 
+import main.ast.nodes.declaration.CustomErrorDefinition;
 import main.symbolTable.SymbolTable;
 import main.visitor.IVisitor;
 
 public class CustomErrorSymbolTableItem extends SymbolTableItem {
     private String customErrorName;
     private SymbolTable symbolTable;
+    private CustomErrorDefinition customErrorDefinition;
 
-    public CustomErrorSymbolTableItem(String customErrorName) {
+    public CustomErrorSymbolTableItem(String customErrorName, CustomErrorDefinition customErrorDefinition) {
         this.customErrorName = customErrorName;
+        this.customErrorDefinition = customErrorDefinition;
+        this.setLine(customErrorDefinition.getLine());
     }
 
     @Override

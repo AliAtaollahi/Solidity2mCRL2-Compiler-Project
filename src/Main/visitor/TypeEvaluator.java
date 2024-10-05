@@ -1,5 +1,6 @@
 package main.visitor;
 
+import main.ast.nodes.declaration.ContractDefinition;
 import main.ast.nodes.declaration.FunctionDefinition;
 import main.ast.nodes.declaration.VariableDeclaration;
 import main.ast.nodes.declaration.utility.FunctionCallArguments;
@@ -155,22 +156,40 @@ public class TypeEvaluator extends Visitor<Type> {
     // FunctionCallExpression Type Inference
     @Override
     public Type visit(FunctionCallExpression functionCallExpression) {
-        // First, resolve the type of the function being called (functionName)
         Expression functionName = functionCallExpression.getFunctionName();
         FunctionCallArguments args = functionCallExpression.getArgs();
 
         // Use the symbol table to get the matching function based on name and argument types
         try {
             if (functionName instanceof Identifier) {
-                SymbolTableItem functionItem = this.symbolTable.getFunctionItem(functionName, args, this);
-                this.currentItemFoundFromSymbolTable = functionItem;
-                if (functionItem instanceof FunctionDefinitionSymbolTableItem) {
-                    // Get the return type of the function from the function definition
-                    FunctionDefinitionSymbolTableItem functionSymbolItem = (FunctionDefinitionSymbolTableItem) functionItem;
-                    ParameterList returnParams = functionSymbolItem.getReturnParameterList();
-                    if (returnParams != null && !returnParams.getParameters().isEmpty()) {
-                        return returnParams.getParameters().get(0).getType();  // Assuming single return type for simplicity
+                try {
+                    SymbolTableItem functionItem = this.symbolTable.getFunctionItem(functionName, args, this);
+                    this.currentItemFoundFromSymbolTable = functionItem;
+                    if (functionItem instanceof FunctionDefinitionSymbolTableItem) {
+                        // Get the return type of the function from the function definition
+                        FunctionDefinitionSymbolTableItem functionSymbolItem = (FunctionDefinitionSymbolTableItem) functionItem;
+                        ParameterList returnParams = functionSymbolItem.getReturnParameterList();
+                        if (returnParams != null && !returnParams.getParameters().isEmpty()) {
+                            return returnParams.getParameters().get(0).getType();  // Assuming single return type for simplicity
+                        }
                     }
+                }
+                catch (ItemNotFoundException e) {
+                    SymbolTableItem structItem = this.symbolTable.getItemDebugMode(StructInitializationExpression.START_KEY + ((Identifier)functionName).getName(), true);
+                    this.currentItemFoundFromSymbolTable = structItem;
+                    UserDefinedTypeName type = new UserDefinedTypeName();
+                    type.addChainRing(structItem.getName());
+                    return type;
+                }
+            }
+            else if (functionName instanceof ObjectCreation) {
+                try {
+                    String contractName = ((UserDefinedTypeName)((ObjectCreation) functionName).getType()).getTypeChain().get(0).getName();
+                    ContractDefinitionSymbolTableItem contractItem = ((ContractDefinitionSymbolTableItem)this.symbolTable.getItemDebugMode(ContractDefinitionSymbolTableItem.START_KEY + contractName, true));
+                    this.currentItemFoundFromSymbolTable = contractItem.getContractSymbolTable().getConstrcutorItem(args, this);
+                    return new NoType();
+                } catch (ItemNotFoundException e) {
+
                 }
             }
             else if (functionName instanceof AccessExpression) {
@@ -400,37 +419,45 @@ public class TypeEvaluator extends Visitor<Type> {
             }
         } catch (ItemNotFoundException e) {
             try {
-                SymbolTableItem item = this.symbolTable.getItemDebugMode(FunctionDefinition.START_KEY + identifier.getName(), true);
+                SymbolTableItem item = this.symbolTable.getItemDebugMode(identifier.getName(), true);
                 this.currentItemFoundFromSymbolTable = item;
-                // TODO -> bayad ReturnParameterList barresi besheh
-                if (item != null && item instanceof FunctionDefinitionSymbolTableItem) {
-                    return ((FunctionDefinitionSymbolTableItem) item).getReturnParameterList().getParameters().get(0).getType();
+                if (item instanceof ParameterSymbolTableItem) {
+                    return ((ParameterSymbolTableItem) item).getParameterType();
                 }
-            } catch (ItemNotFoundException e1) {
-            }
-            try {
-                SymbolTableItem item = this.symbolTable.getItemDebugMode(StructInitializationExpression.START_KEY + identifier.getName(), true);
-                this.currentItemFoundFromSymbolTable = item;
-                if (item != null && item instanceof StructDefinitionSymbolTableItem) {
-                    return ((StructDefinitionSymbolTableItem) item).getType();
+            } catch (ItemNotFoundException e2) {
+                try {
+                    SymbolTableItem item = this.symbolTable.getItemDebugMode(FunctionDefinition.START_KEY + identifier.getName(), true);
+                    this.currentItemFoundFromSymbolTable = item;
+                    // TODO -> bayad ReturnParameterList barresi besheh
+                    if (item != null && item instanceof FunctionDefinitionSymbolTableItem) {
+                        return ((FunctionDefinitionSymbolTableItem) item).getReturnParameterList().getParameters().get(0).getType();
+                    }
+                } catch (ItemNotFoundException e1) {
                 }
-            } catch (ItemNotFoundException e1) {
-            }
-            try {
-                SymbolTableItem item = this.symbolTable.getItemDebugMode(StateVariableSymbolTableItem.START_KEY + identifier.getName(), true);
-                this.currentItemFoundFromSymbolTable = item;
-                if (item != null && item instanceof StateVariableSymbolTableItem) {
-                    return ((StateVariableSymbolTableItem) item).getType();
+                try {
+                    SymbolTableItem item = this.symbolTable.getItemDebugMode(StructInitializationExpression.START_KEY + identifier.getName(), true);
+                    this.currentItemFoundFromSymbolTable = item;
+                    if (item != null && item instanceof StructDefinitionSymbolTableItem) {
+                        return ((StructDefinitionSymbolTableItem) item).getType();
+                    }
+                } catch (ItemNotFoundException e1) {
                 }
-            } catch (ItemNotFoundException e1) {
-            }
-            try {
-                SymbolTableItem item = this.symbolTable.getItemDebugMode(ContractDefinitionSymbolTableItem.START_KEY + identifier.getName(), true);
-                this.currentItemFoundFromSymbolTable = item;
-                if (item != null && item instanceof ContractDefinitionSymbolTableItem) {
-                    return ((ContractDefinitionSymbolTableItem) item).getType();
+                try {
+                    SymbolTableItem item = this.symbolTable.getItemDebugMode(StateVariableSymbolTableItem.START_KEY + identifier.getName(), true);
+                    this.currentItemFoundFromSymbolTable = item;
+                    if (item != null && item instanceof StateVariableSymbolTableItem) {
+                        return ((StateVariableSymbolTableItem) item).getType();
+                    }
+                } catch (ItemNotFoundException e1) {
                 }
-            } catch (ItemNotFoundException e1) {
+                try {
+                    SymbolTableItem item = this.symbolTable.getItemDebugMode(ContractDefinitionSymbolTableItem.START_KEY + identifier.getName(), true);
+                    this.currentItemFoundFromSymbolTable = item;
+                    if (item != null && item instanceof ContractDefinitionSymbolTableItem) {
+                        return ((ContractDefinitionSymbolTableItem) item).getType();
+                    }
+                } catch (ItemNotFoundException e1) {
+                }
             }
         }
 
