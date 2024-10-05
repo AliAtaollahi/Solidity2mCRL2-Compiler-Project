@@ -4,6 +4,7 @@ import main.ast.nodes.declaration.utility.ContractType;
 import main.ast.nodes.declaration.utility.InheritanceSpecifier;
 import main.ast.nodes.expression.primary.Identifier;
 import main.visitor.IVisitor;
+import org.antlr.v4.runtime.misc.Pair;
 
 import java.util.ArrayList;
 
@@ -14,12 +15,12 @@ public class ContractDefinition extends Declaration {
     private boolean isAbstract = false;
 
     private ContractType contractType;
-    private ArrayList<Identifier> identifiers = new ArrayList<>();
-    public void addIdentifier(Identifier identifier) {
+    private ArrayList<Pair<Identifier, Boolean>> identifiers = new ArrayList<>();
+    public void addIdentifier(Pair<Identifier, Boolean> identifier) {
         this.identifiers.add(identifier);
     }
 
-    public ArrayList<Identifier> getIdentifiers() {
+    public ArrayList<Pair<Identifier, Boolean>> getIdentifiers() {
         return this.identifiers;
     }
 

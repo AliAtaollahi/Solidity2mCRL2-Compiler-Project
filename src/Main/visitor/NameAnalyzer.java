@@ -8,6 +8,7 @@ import main.ast.nodes.expression.modifier.Modifier;
 import main.ast.nodes.expression.modifier.ModifierInvocation;
 import main.ast.nodes.expression.modifier.OtherModifers;
 import main.ast.nodes.expression.modifier.OverrideSpecifier;
+import main.ast.nodes.expression.operators.BinaryOperator;
 import main.ast.nodes.expression.primary.*;
 import main.ast.nodes.expression.type.AddressPayable;
 import main.ast.nodes.expression.type.FunctionTypeName;
@@ -22,6 +23,7 @@ import main.symbolTable.SymbolTable;
 import main.symbolTable.exceptions.ItemAlreadyExistsException;
 import main.symbolTable.exceptions.ItemNotFoundException;
 import main.symbolTable.items.*;
+import org.antlr.v4.runtime.misc.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +33,7 @@ public class NameAnalyzer extends Visitor<Void> {
     private ContractDefinition currentContractDefinition;
     private FunctionDefinition currentfunctionDefinition;
     private Statement currentStatement;
+    private Boolean isCurrentPosOfStateVariableLeft = false;
 
     @Override
     public Void visit(SourceUnit sourceUnit) {
@@ -87,11 +90,11 @@ public class NameAnalyzer extends Visitor<Void> {
     @Override
     public Void visit(Identifier identifier) {
         if (this.currentfunctionDefinition != null) {
-            this.currentfunctionDefinition.addIdentifier(identifier);
+            this.currentfunctionDefinition.addIdentifier(new Pair<>(identifier, this.isCurrentPosOfStateVariableLeft));
         }
 
         if (this.currentContractDefinition != null) {
-            this.currentContractDefinition.addIdentifier(identifier);
+            this.currentContractDefinition.addIdentifier(new Pair<>(identifier, this.isCurrentPosOfStateVariableLeft));
         }
 
         return null;
@@ -99,9 +102,14 @@ public class NameAnalyzer extends Visitor<Void> {
 
     @Override
     public Void visit(BinaryExpression binaryExpression) {
+
         // Visit the first operand
         if (binaryExpression.getFirstOperand() != null) {
+            if (binaryExpression.getBinaryOperator().equals(BinaryOperator.ASSIGNMENT)) {
+                this.isCurrentPosOfStateVariableLeft = true;
+            }
             binaryExpression.getFirstOperand().accept(this);
+            this.isCurrentPosOfStateVariableLeft = false;
         }
 
         // Visit the second operand

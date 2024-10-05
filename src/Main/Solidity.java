@@ -44,13 +44,15 @@ public class Solidity {
         // Symbol table processing
         SymbolTable.root.hashCode();
 
-        // Dependency detection
-        DependencyDetector dependencyDetector = new DependencyDetector();
-        dependencyDetector.visit(sourceUnit);
+
 
         // New exclusion analyzer
         NewExclusionAnalyzer newExclusionAnalyzer = new NewExclusionAnalyzer();
         newExclusionAnalyzer.visit(sourceUnit);
+
+        // Dependency detection
+        DependencyDetector dependencyDetector = new DependencyDetector();
+        dependencyDetector.visit(sourceUnit);
 
         // Final symbol table hash code to ensure no errors
         SymbolTable.root.hashCode();

@@ -15,6 +15,10 @@ contract DelegateCallExample {
         y = _value;
     }
 
+    function getY() returns (uint256) {
+        return y;
+    }
+
     // Function with variable assignment (x = y) and a delegatecall
     function updateXAndDelegatecall(address targetContract, bytes memory data) public payable {
         uint256 x = y; // Assign y's value to x

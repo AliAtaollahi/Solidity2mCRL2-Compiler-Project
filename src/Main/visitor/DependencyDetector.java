@@ -3,6 +3,7 @@ package main.visitor;
 import main.ast.nodes.SourceUnit;
 import main.ast.nodes.declaration.*;
 import main.ast.nodes.expression.*;
+import main.ast.nodes.expression.type.UserDefinedTypeName;
 import main.ast.nodes.expression.type.primitive.AddressType;
 import main.ast.nodes.expression.type.primitive.BoolType;
 import main.ast.nodes.expression.type.primitive.ByteUpperCaseType;
@@ -16,9 +17,11 @@ import main.ast.nodes.statement.Block;
 import main.ast.nodes.statement.Statement;
 import main.symbolTable.SymbolTable;
 import main.symbolTable.exceptions.ItemAlreadyExistsException;
+import main.symbolTable.exceptions.ItemNotFoundException;
 import main.symbolTable.items.*;
 import main.utils.DependencyNode;
 import main.utils.DependencyTree;
+import org.antlr.v4.runtime.misc.Pair;
 
 import java.util.*;
 
@@ -37,8 +40,58 @@ public class DependencyDetector extends Visitor<Void> {
         for (SymbolTableItem item : symbolTable.items.values()) {
             item.accept(this);
         }
+        // Rule 7
+        this.traverseDependencyTree();
 
+        // Rule 4
+        this.addDepentConstructors();
         return null;
+    }
+
+    private void traverseDependencyTree() {
+        Set<DependencyNode> newNodes = new HashSet<>();
+        // For each node in initNodes, find its dependencies recursively
+        for (DependencyNode dependencyNode : new HashSet<>(this.initNodes)) {
+            addAllDependentFunctions(dependencyNode, newNodes);
+        }
+        // Add all new nodes to initNodes after iteration is complete
+        this.initNodes.addAll(newNodes);
+    }
+
+    // Rule 5
+    private void addAllDependentFunctions(DependencyNode node, Set<DependencyNode> newNodes) {
+        if (!this.initNodes.contains(node)) {
+            return;
+        }
+        // Get all the nodes dependent on the current node from the dependency tree
+        Set<DependencyNode> dependencies = this.dependencyTree.getDependencies(node);
+
+        // If no dependencies, return
+        if (dependencies == null || dependencies.isEmpty()) {
+            return;
+        }
+
+        // Iterate over the dependencies and add them to the newNodes set if not already present
+        for (DependencyNode dependency : dependencies) {
+            if (!this.initNodes.contains(dependency) && !newNodes.contains(dependency)) {
+                newNodes.add(dependency);
+                // Recursively find and add dependencies of the current dependency
+                addAllDependentFunctions(dependency, newNodes);
+            }
+        }
+    }
+
+    private void addDepentConstructors() {
+        for (DependencyNode dependencyNode : initNodes) {
+            SymbolTableItem symbolTableItem = dependencyNode.getItemKey();
+            if (symbolTableItem instanceof FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem) {
+                if (functionDefinitionSymbolTableItem.getFunctionDefinitionPointer().getFunctionDescriptor() instanceof OtherFunctionDescriptors otherFunctionDescriptors) {
+                    if (otherFunctionDescriptors.getName().equals("constructor")) {
+                        this.initNodes.add(new DependencyNode(symbolTableItem, ((FunctionDefinitionSymbolTableItem) symbolTableItem).getContractDefinitionContainer()));
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -208,6 +261,23 @@ public class DependencyDetector extends Visitor<Void> {
                 this.initNodes.add(this.currentFunctionDefinitionNode);
             } else if (this.expressionAnalyzer.findAccessExpression("tx", "origin", functionDefinitionSymbolTableItem.getScope())) {
                 this.initNodes.add(this.currentFunctionDefinitionNode);
+            }
+        }
+
+        // Rule 6
+        for (Pair<Identifier, Boolean> identifier : functionDefinitionSymbolTableItem.getFunctionDefinitionPointer().getIdentifiers()) {
+            try {
+                SymbolTableItem item = functionDefinitionSymbolTableItem.getSymbolTable().getItem(StateVariableSymbolTableItem.START_KEY + identifier.a.getName(), true);
+                for (SymbolTableItem symbolTableItem : functionDefinitionSymbolTableItem.getSymbolTable().pre.items.values()) {
+                    if (symbolTableItem instanceof FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem1) {
+                        if (functionDefinitionSymbolTableItem1.getFunctionDefinitionPointer().getIdentifiers().contains(identifier)) {
+                            if (identifier.b) {
+                                this.initNodes.add(new DependencyNode(symbolTableItem, this.currentFunctionDefinition.getContractDefinitionContainer()));
+                            }
+                        }
+                    }
+                }
+            } catch (ItemNotFoundException e) {
             }
         }
 

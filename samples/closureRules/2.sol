@@ -23,7 +23,12 @@ contract GuessingGame{
         }
     }
 
+    function meow() returns (string) {
+        return "maow";
+    }
+
     function reward() public {
+        string s = meow();
         require(msg.sender == owner,"You cannot access to this function!");
         require(endGame == true,"The game is running!!");
         payable(winner).transfer((winnerMoney/address(this).balance)*(address(this).balance - winnerMoney) + winnerMoney);
