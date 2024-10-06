@@ -1,0 +1,135 @@
+sort Address;
+cons Normal,Attacker,Owner,null,Contract : Address;
+map
+	equal : Address#Address -> Bool;
+var ad1,ad2: Address;
+eqn
+	equal(Normal,Normal) = true;
+	equal(Normal,Attacker) = false;
+	equal(Normal,Owner) = false;
+	equal(Normal,null) = false;
+	equal(Normal,Contract) = false;
+	equal(Attacker,Attacker) = true;
+	equal(Attacker,Normal) = false;
+	equal(Attacker,Owner) = false;
+	equal(Attacker,null) = false;
+	equal(Attacker,Contract) = false;
+	equal(Owner,Owner) = true;
+	equal(Owner,Normal) = false;
+	equal(Owner,Attacker) = false;
+	equal(Owner,null) = false;
+	equal(Owner,Contract) = false;
+	equal(null,null) = true;
+	equal(null,Normal) = false;
+	equal(null,Attacker) = false;
+	equal(null,Owner) = false;
+	equal(null,Contract) = false;
+	equal(Contract,Contract) = true;
+	equal(Contract,Normal) = false;
+	equal(Contract,Attacker) = false;
+	equal(Contract,Owner) = false;
+	equal(Contract,null) = false;
+	ad1 == ad2 = equal(ad1,ad2);
+%-------------------------------------------------
+act
+	call_deposit,get_deposit,start : Int#Address;
+	call_succDeposit,get_succDeposit,succDeposit;
+	call_failDeposit,get_failDeposit,failDeposit;
+	deposit_firstSuccess,deposit_firstFail;
+	deposit_secondSuccess,deposit_secondFail;
+	call_transfer_EmptyFallback,get_transfer_EmptyFallback,transfer_EmptyFallback : Address;
+	call_transfer_NoFallback,get_transfer_NoFallback,transfer_NoFallback : Address;
+	call_transfer_Fallback,get_transfer_Fallback,transfer_Fallback : Address;
+	call_selfdestruct,get_selfdestruct,selfdestruct : Int#Address;
+	deposit_thirdSuccess,deposit_thirdFail;
+	
+proc
+	harness(destructCounter:Int) =
+		(destructCounter == 0) ->
+			(sum value:Int.(value == 1 || value == 2) -> 
+				(sum addr:Address.(addr == Normal || addr == Attacker) ->
+					call_deposit(value,addr).
+					((get_succDeposit.harness(destructCounter)) + 
+					((addr == Normal) ->
+						(get_transfer_EmptyFallback(addr).get_succDeposit.harness(destructCounter))
+					<> (addr == Attacker) ->
+						((get_transfer_NoFallback(addr).get_failDeposit.harness(destructCounter)) +
+						(get_transfer_Fallback(addr).get_succDeposit.
+						AttackerContract(addr,1,3).harness(destructCounter)))) + 
+					(get_failDeposit.harness(destructCounter)))
+				<> delta)
+			<> delta +
+			sum value:Int.(value == 10 || value == 40 || value == 60) -> 
+				(sum addr:Address.(addr == Normal || addr == Contract) ->
+					((addr == Contract) ->
+						(call_selfdestruct(value,Contract).harness(destructCounter + 1))
+					<> delta)
+				<> delta)
+			<> delta)
+		<> (destructCounter == 1) ->
+			(sum value:Int.(value == 1 || value == 2) -> 
+				(sum addr:Address.(addr == Normal || addr == Attacker) ->
+					call_deposit(value,addr).
+					((get_succDeposit.harness(destructCounter)) + 
+					((addr == Normal) ->
+						(get_transfer_EmptyFallback(addr).get_succDeposit.harness(destructCounter))
+					<> (addr == Attacker) ->
+						((get_transfer_NoFallback(addr).get_failDeposit.harness(destructCounter)) +
+						(get_transfer_Fallback(addr).get_succDeposit.
+						AttackerContract(addr,1,3).harness(destructCounter)))) + 
+					(get_failDeposit.harness(destructCounter)))
+				<> delta)
+			<> delta)
+		<> delta;
+	
+	EtherGame(targetAmount:Int,winner:Address,balance:Int) =
+		sum value:Int.sum addr:Address.get_deposit(value,addr).deposit(targetAmount,winner,balance,value,addr) +
+		sum value:Int.sum addr:Address.get_selfdestruct(value,addr).EtherGame(targetAmount,winner,balance + value);
+	
+	deposit(targetAmount:Int,winner:Address,balance:Int,value:Int,addr:Address) =
+		(balance < 50) ->
+			((value == 1) ->
+				(deposit_firstSuccess.
+				(((balance + 1) <= targetAmount) ->
+					(deposit_secondSuccess.
+					(((balance + 1) == targetAmount) ->
+						((call_transfer_EmptyFallback(addr).deposit_thirdSuccess.call_succDeposit.
+							EtherGame(targetAmount,addr,0)) +
+						(call_transfer_NoFallback(addr).deposit_thirdFail.call_failDeposit.
+							EtherGame(targetAmount,winner,balance)) +
+						(call_transfer_Fallback(addr).call_succDeposit.
+							EtherGame(targetAmount,winner,balance - value)))
+					<> call_succDeposit.EtherGame(targetAmount,winner,balance + 1)))
+				<> deposit_secondFail.call_failDeposit.EtherGame(targetAmount,winner,balance)))
+			<> deposit_firstFail.call_failDeposit.EtherGame(targetAmount,winner,balance))
+		<> call_failDeposit.EtherGame(targetAmount,winner,balance);
+	
+	AttackerContract(addr:Address,i:Int,eta:Int) =
+		(i < eta) ->
+			(sum value:Int.(value == 1 || value == 2) -> 
+				(call_deposit(value,addr).
+					((get_succDeposit.AttackerContract(addr,i + 1,eta)) + 
+					(get_transfer_Fallback(addr).get_succDeposit.AttackerContract(addr,i + 1,eta).
+						ContinuationDeposit)) + 
+					(get_failDeposit.AttackerContract(addr,i + 1,eta)))
+			<> delta)
+		<> ContinuationDeposit;
+		
+	ContinuationDeposit =
+		deposit_thirdSuccess;
+init
+	allow({
+		start,succDeposit,failDeposit,deposit_firstSuccess,deposit_firstFail,deposit_secondSuccess,
+		deposit_secondFail,transfer_EmptyFallback,transfer_NoFallback,transfer_Fallback,selfdestruct,
+		deposit_thirdSuccess,deposit_thirdFail
+	},
+		comm({
+			call_deposit|get_deposit -> start,
+			call_succDeposit|get_succDeposit -> succDeposit,
+			call_failDeposit|get_failDeposit -> failDeposit,
+			call_transfer_EmptyFallback|get_transfer_EmptyFallback -> transfer_EmptyFallback,
+			call_transfer_NoFallback|get_transfer_NoFallback -> transfer_NoFallback,
+			call_transfer_Fallback|get_transfer_Fallback -> transfer_Fallback,
+			call_selfdestruct|get_selfdestruct -> selfdestruct
+		},
+			harness(0) || EtherGame(3,null,0)));

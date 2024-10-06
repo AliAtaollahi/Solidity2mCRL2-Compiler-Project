@@ -152,8 +152,10 @@ public class NewExclusionAnalyzer extends Visitor<Void> {
                 } catch (ItemNotFoundException e) {
                     try {
                         SymbolTableItem item = functionCallSymbolTableItem.getCurrentSymbolTable().getItem(StateVariableSymbolTableItem.START_KEY + nameOfCaller, true);
-                        String tokenName = ((UserDefinedTypeName)((StateVariableSymbolTableItem)item).getType()).getTypeChain().get(0).getName();
-                        this.tokensHandler.buildByBuiltIn(tokenName, functionCallSymbolTableItem.getFunctionCallExpression());
+                        if (((StateVariableSymbolTableItem)item).getType() instanceof UserDefinedTypeName) {
+                            String tokenName = ((UserDefinedTypeName) ((StateVariableSymbolTableItem) item).getType()).getTypeChain().get(0).getName();
+                            this.tokensHandler.buildByBuiltIn(tokenName, functionCallSymbolTableItem.getFunctionCallExpression());
+                        }
 
                     } catch (ItemNotFoundException e2) {
 

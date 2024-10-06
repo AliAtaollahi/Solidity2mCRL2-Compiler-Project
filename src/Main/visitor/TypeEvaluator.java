@@ -157,6 +157,15 @@ public class TypeEvaluator extends Visitor<Type> {
         Expression functionName = functionCallExpression.getFunctionName();
         FunctionCallArguments args = functionCallExpression.getArgs();
 
+        if (functionName instanceof AccessExpression ) {
+            String methodName = ((AccessExpression) functionName).getMember().getName();
+            if (methodName.equals("transfer") || methodName.equals("send")) {
+                Type type = (((AccessExpression) functionName).getMaster()).accept(this);
+                if (type instanceof AddressPayable)
+                    return new AddressType();
+            }
+        }
+
         if (functionCallExpression.getFunctionName() instanceof Identifier && ((Identifier) functionCallExpression.getFunctionName()).getName().equals("address")
          && functionCallExpression.getArgs() instanceof ExpressionList && ((ExpressionList) functionCallExpression.getArgs()).getExpressionList().size() == 1
         && ((ExpressionList) functionCallExpression.getArgs()).getExpressionList().get(0) instanceof Identifier &&
@@ -197,7 +206,6 @@ public class TypeEvaluator extends Visitor<Type> {
                 }
             }
             else if (functionName instanceof AccessExpression) {
-                // TODO
                 Type type = ((AccessExpression) functionName).getMaster().accept(this);
                 if (type instanceof AddressType)
                     return new AddressType();

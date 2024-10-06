@@ -1,0 +1,184 @@
+sort Address;
+cons Normal,Attacker,Owner,null,Contract : Address;
+map
+	equal : Address#Address -> Bool;
+var ad1,ad2: Address;
+eqn
+	equal(Normal,Normal) = true;
+	equal(Normal,Attacker) = false;
+	equal(Normal,Owner) = false;
+	equal(Normal,null) = false;
+	equal(Normal,Contract) = false;
+	equal(Attacker,Attacker) = true;
+	equal(Attacker,Normal) = false;
+	equal(Attacker,Owner) = false;
+	equal(Attacker,null) = false;
+	equal(Attacker,Contract) = false;
+	equal(Owner,Owner) = true;
+	equal(Owner,Normal) = false;
+	equal(Owner,Attacker) = false;
+	equal(Owner,null) = false;
+	equal(Owner,Contract) = false;
+	equal(null,null) = true;
+	equal(null,Normal) = false;
+	equal(null,Attacker) = false;
+	equal(null,Owner) = false;
+	equal(null,Contract) = false;
+	equal(Contract,Contract) = true;
+	equal(Contract,Normal) = false;
+	equal(Contract,Attacker) = false;
+	equal(Contract,Owner) = false;
+	equal(Contract,null) = false;
+	ad1 == ad2 = equal(ad1,ad2);
+%-------------------------------------------------
+sort mapping;
+cons empty : mapping;
+	 add : Address#Int#mapping -> mapping;
+map
+	retValue : Address#mapping -> Int;
+	search : Address#mapping -> Bool;
+	update: Address#Int#mapping -> mapping;
+var
+	array : mapping;
+	b,d : Int;
+	a,c : Address;
+eqn
+	retValue(a,empty) = -1;
+	retValue(a,add(c,b,array)) = if(a == c,b,retValue(a,array));
+	search(a,empty) = false;
+	search(a,add(c,b,array)) = if(a == c,true,search(a,array));
+	update(a,b,empty) = empty;
+	update(a,b,add(c,d,array)) = if(a == c,add(a,b,array),add(c,d,update(a,b,array)));
+%-------------------------------------------------
+act
+	call_addToBalance,get_addToBalance,set : Int#Address;
+	call_succAdd,get_succAdd,succAdd : Address#Int;
+	call_failAdd,get_failAdd,failAdd;
+	call_succGet,get_succGet,succGet;
+	call_failGet,get_failGet,failGet;
+	call_withdrawBalance,get_withdrawBalance,withd : Int#Address;
+	call_transfer_EmptyFallback,get_transfer_EmptyFallback,transfer_EmptyFallback : Address;
+	call_transfer_NoFallback,get_transfer_NoFallback,transfer_NoFallback : Address;
+	call_transfer_Fallback,get_transfer_Fallback,transfer_Fallback : Address;
+	withdraw_firstSuccess,withdraw_firstFail;
+	call_succWithdraw,get_succWithdraw,succWithdraw;
+	call_failWithdraw,get_failWithdraw,failWithdraw;
+	call_updateDAO,get_updateDAO,updateDAO : Int#Address;
+	call_selfdestruct,get_selfdestruct,selfdestruct : Int#Address;
+
+proc
+	harness(destructCounter:Int) =
+		(destructCounter == 0) ->
+			(sum value:Int.(value < 2 && value > 0) -> 
+				(sum addr:Address.(addr == Normal || addr == Attacker) ->
+					(call_addToBalance(value*10,addr).(get_succAdd(addr,value*10) + get_failAdd)).
+					harness(destructCounter)
+				<> delta)
+			<> delta +
+			sum value:Int.(value < 2 && value > 0) -> 
+				(sum addr:Address.(addr == Normal || addr == Attacker) -> 
+					% Second address is the address of the sender
+					(call_withdrawBalance(value*10,addr).
+					(((addr == Normal) ->
+						(get_transfer_EmptyFallback(addr).get_succWithdraw).harness(destructCounter)
+					<> (addr == Attacker) ->
+						((get_transfer_NoFallback(addr).get_failWithdraw) +
+						(get_transfer_Fallback(addr).get_succWithdraw.
+						AttackerContract(addr,1,2,value*10))).
+						harness(destructCounter)
+					<> delta) +
+					(get_failWithdraw.harness(destructCounter))))
+				<> delta)
+			<> delta +
+			sum value:Int.(value == 10 || value == 40 || value == 60) -> 
+				(sum addr:Address.(addr == Contract) ->
+					(call_selfdestruct(value,Contract).harness(destructCounter + 1))
+				<> delta)
+			<> delta)
+		<> (destructCounter == 1) ->
+			(sum value:Int.(value < 2 && value > 0) -> 
+				(sum addr:Address.(addr == Normal || addr == Attacker) ->
+					(call_addToBalance(value*10,addr).(get_succAdd(addr,value*10) + get_failAdd)).
+					harness(destructCounter)
+				<> delta)
+			<> delta + 
+			sum value:Int.(value < 2 && value > 0) -> 
+				(sum addr:Address.(addr == Normal || addr == Attacker) -> 
+					% Second address is the address of the sender
+					(call_withdrawBalance(value*10,addr).
+					(((addr == Normal) ->
+						(get_transfer_EmptyFallback(addr).get_succWithdraw).harness(destructCounter)
+					<> (addr == Attacker) ->
+						((get_transfer_NoFallback(addr).get_failWithdraw) +
+						(get_transfer_Fallback(addr).get_succWithdraw.
+						AttackerContract(addr,1,2,value*10))).
+						harness(destructCounter)) +
+					(get_failWithdraw.harness(destructCounter))))
+				<> delta)
+			<> delta)
+		<> delta;
+		
+	DAO(userBalances:mapping,DaoBal:Int) =
+		sum value:Int.sum addr:Address.get_addToBalance(value,addr).addToBalance(userBalances,DaoBal,value,addr) +
+		sum value:Int.sum addr:Address.get_withdrawBalance(value,addr).
+			withdrawBalance(userBalances,DaoBal,value,addr) +
+		sum value:Int.sum addr:Address.get_updateDAO(value,addr).
+			DAO(update(addr,(retValue(addr,userBalances)) - value,userBalances),DaoBal) +
+		sum value:Int.sum addr:Address.get_selfdestruct(value,addr).
+			DAO(userBalances,DaoBal + value);
+	
+	addToBalance(userBalances:mapping,DaoBal:Int,value:Int,addr:Address) =
+		(retValue(addr,userBalances) < 30) -> 
+			((!search(addr,userBalances)) -> 
+				(call_succAdd(addr,value).DAO(add(addr,value,userBalances),DaoBal + value))
+			<> (call_succAdd(addr,value).
+				DAO(update(addr,(retValue(addr,userBalances)) + value,userBalances),DaoBal + value)))
+		<> call_failAdd.DAO(userBalances,DaoBal);
+	
+	withdrawBalance(userBalances:mapping,DaoBal:Int,value:Int,addr:Address) =
+		(search(addr,userBalances) && retValue(addr,userBalances) >= value) ->
+			((call_transfer_EmptyFallback(addr).withdraw_firstSuccess.call_succWithdraw.
+				DAO(update(addr,retValue(addr,userBalances) - value,userBalances),DaoBal - value)) +
+			(call_transfer_NoFallback(addr).withdraw_firstFail.call_failWithdraw.DAO(userBalances,DaoBal)) +
+			(call_transfer_Fallback(addr).call_succWithdraw.DAO(userBalances,DaoBal - value)))
+		<> call_failWithdraw.DAO(userBalances,DaoBal);
+	
+	AttackerContract(addr:Address,i:Int,eta:Nat,initValue:Int) =
+		(i < eta) ->
+			((sum value:Int.(value < 2 && value > 0) -> 
+				call_addToBalance(value*10,addr).(get_succAdd(addr,value*10) + get_failAdd).
+				AttackerContract(addr,i + 1,eta,initValue)
+			<> delta) +
+			(sum value:Int.(value < 2 && value > 0) -> 
+				(call_withdrawBalance(value*10,addr).
+				(get_transfer_Fallback(addr).get_succWithdraw + get_failWithdraw).
+				AttackerContract(addr,i + 1,eta,initValue).
+				ContinuationWithdraw(value*10,addr))
+			<> delta))
+		<> ContinuationWithdraw(initValue,addr);
+	
+	ContinuationWithdraw(value:Int,addr:Address) =
+		withdraw_firstSuccess.call_updateDAO(value,addr);
+	
+	init
+		allow({
+			set,succAdd,failAdd,succGet,failGet,withd,transfer_EmptyFallback,transfer_NoFallback,
+			transfer_Fallback,withdraw_firstSuccess,withdraw_firstFail,succWithdraw,failWithdraw,updateDAO,
+			selfdestruct
+		},
+			comm({
+				call_addToBalance|get_addToBalance -> set,
+				call_succAdd|get_succAdd -> succAdd,
+				call_failAdd|get_failAdd -> failAdd,
+				call_succGet|get_succGet -> succGet,
+				call_failGet|get_failGet -> failGet,
+				call_withdrawBalance|get_withdrawBalance -> withd,
+				call_transfer_EmptyFallback|get_transfer_EmptyFallback -> transfer_EmptyFallback,
+				call_transfer_NoFallback|get_transfer_NoFallback -> transfer_NoFallback,
+				call_transfer_Fallback|get_transfer_Fallback -> transfer_Fallback,
+				call_succWithdraw|get_succWithdraw -> succWithdraw,
+				call_failWithdraw|get_failWithdraw -> failWithdraw,
+				call_updateDAO|get_updateDAO -> updateDAO,
+				call_selfdestruct|get_selfdestruct -> selfdestruct
+			},
+				harness(0) || DAO(empty,20)));

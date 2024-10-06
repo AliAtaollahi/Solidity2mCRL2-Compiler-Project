@@ -44,8 +44,6 @@ public class Solidity {
         // Symbol table processing
         SymbolTable.root.hashCode();
 
-
-
         // New exclusion analyzer
         NewExclusionAnalyzer newExclusionAnalyzer = new NewExclusionAnalyzer();
         newExclusionAnalyzer.visit(sourceUnit);
@@ -56,6 +54,9 @@ public class Solidity {
 
         // Final symbol table hash code to ensure no errors
         SymbolTable.root.hashCode();
+
+        CodeGeneration codeGeneration = new CodeGeneration();
+        codeGeneration.visit(sourceUnit);
     }
 }
 

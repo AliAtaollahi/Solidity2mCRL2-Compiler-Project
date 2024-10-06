@@ -1,0 +1,213 @@
+sort Address;
+cons Normal,Attacker,Owner,null,Contract : Address;
+map
+	equal : Address#Address -> Bool;
+var ad1,ad2: Address;
+eqn
+	equal(Normal,Normal) = true;
+	equal(Normal,Attacker) = false;
+	equal(Normal,Owner) = false;
+	equal(Normal,null) = false;
+	equal(Normal,Contract) = false;
+	equal(Attacker,Attacker) = true;
+	equal(Attacker,Normal) = false;
+	equal(Attacker,Owner) = false;
+	equal(Attacker,null) = false;
+	equal(Attacker,Contract) = false;
+	equal(Owner,Owner) = true;
+	equal(Owner,Normal) = false;
+	equal(Owner,Attacker) = false;
+	equal(Owner,null) = false;
+	equal(Owner,Contract) = false;
+	equal(null,null) = true;
+	equal(null,Normal) = false;
+	equal(null,Attacker) = false;
+	equal(null,Owner) = false;
+	equal(null,Contract) = false;
+	equal(Contract,Contract) = true;
+	equal(Contract,Normal) = false;
+	equal(Contract,Attacker) = false;
+	equal(Contract,Owner) = false;
+	equal(Contract,null) = false;
+	ad1 == ad2 = equal(ad1,ad2);
+%-------------------------------------------------
+act
+	call_play,get_play,start : Int#Address#Nat;
+	play_firstSuccess,play_firstFail;
+	call_succPlay,get_succPlay,succPlay;
+	call_failPlay,get_failPlay,failPlay;
+	correctGuess,wrongGuess;
+	call_reward,get_reward,gameReward : Address;
+	reward_firstSuccess,reward_firstFail;
+	reward_secondSuccess,reward_secondFail;
+	call_succReward,get_succReward,succReward;
+	call_failReward,get_failReward,failReward;
+	call_transfer_EmptyFallback,get_transfer_EmptyFallback,transfer_EmptyFallback : Address#Address;
+	call_transfer_NoFallback,get_transfer_NoFallback,transfer_NoFallback : Address#Address;
+	call_transfer_Fallback,get_transfer_Fallback,transfer_Fallback : Address#Address;
+	call_withdraw,get_withdraw,gameWithdraw : Address#Address;
+	withdraw_firstSuccess,withdraw_firstFail;
+	call_succWithdraw,get_succWithdraw,succWithdraw;
+	call_failWithdraw,get_failWithdraw,failWithdraw;
+	originCheck : Address#Address#Address;
+	call_selfdestruct,get_selfdestruct,selfdestruct : Int#Address;
+	
+proc
+	harness(destructCounter:Int) =
+		(destructCounter == 0) ->
+			(sum value:Int.(value < 2 && value > 0) -> 
+				(sum addr:Address.(addr == Normal || addr == Attacker) -> 
+					(sum number:Nat.(number == 50 || number == 67) -> 
+						call_play(value*10,addr,number).(get_succPlay + get_failPlay).harness(destructCounter)
+					<> delta)
+				<> delta)
+			<> delta +
+			sum senderAddr:Address.(senderAddr == Normal || senderAddr == Attacker || senderAddr == Owner) -> 
+				(call_reward(senderAddr).
+				((sum transferAddr:Address.
+					(transferAddr == Normal) ->
+						(get_transfer_EmptyFallback(transferAddr,senderAddr).get_succReward).
+						harness(destructCounter)
+					<> (transferAddr == Attacker) ->
+						((get_transfer_NoFallback(transferAddr,senderAddr).get_failReward.harness(destructCounter)) +
+						(get_transfer_Fallback(transferAddr,senderAddr).get_succReward.
+							AttackerContract(transferAddr,senderAddr,1,2,destructCounter)))
+					<> delta) +
+				(get_failReward.harness(destructCounter))))
+			<> delta +
+			sum senderAddr:Address.(senderAddr == Normal || senderAddr == Attacker || senderAddr == Owner) -> 
+				% First parameter is sender of the transaction and second parameter is the origin of the transaction
+				(call_withdraw(senderAddr,senderAddr).
+				(((senderAddr == Normal || senderAddr == Owner) ->
+					(get_transfer_EmptyFallback(senderAddr,senderAddr).get_succWithdraw).harness(destructCounter)
+				<> (senderAddr == Attacker) ->
+					((get_transfer_NoFallback(senderAddr,senderAddr).get_failReward.harness(destructCounter)) +
+					(get_transfer_Fallback(senderAddr,senderAddr).get_succReward.
+						AttackerContract(senderAddr,senderAddr,1,2,destructCounter)))) +
+				(get_failWithdraw.harness(destructCounter))))
+			<> delta +
+			sum value:Int.(value == 10 || value == 40 || value == 60) -> 
+				(sum addr:Address.(addr == Contract) ->
+					(call_selfdestruct(value,Contract).harness(destructCounter + 1))
+				<> delta)
+			<> delta)
+		<> (destructCounter == 1) ->
+			(sum value:Int.(value < 2 && value > 0) -> 
+				(sum addr:Address.(addr == Normal || addr == Attacker) -> 
+					(sum number:Nat.(number == 50 || number == 67) -> 
+						call_play(value*10,addr,number).(get_succPlay + get_failPlay).harness(destructCounter) 
+					<> delta)
+				<> delta)
+			<> delta +
+			sum senderAddr:Address.(senderAddr == Normal || senderAddr == Attacker || senderAddr == Owner) -> 
+				(call_reward(senderAddr).
+				((sum transferAddr:Address.
+					(transferAddr == Normal) ->
+						(get_transfer_EmptyFallback(transferAddr,senderAddr).get_succReward).
+						harness(destructCounter)
+					<> (transferAddr == Attacker) ->
+						((get_transfer_NoFallback(transferAddr,senderAddr).get_failReward.harness(destructCounter)) +
+						(get_transfer_Fallback(transferAddr,senderAddr).get_succReward.
+							AttackerContract(transferAddr,senderAddr,1,2,destructCounter)))
+					<> delta) +
+				(get_failReward.harness(destructCounter))))
+			<> delta +
+			sum senderAddr:Address.(senderAddr == Normal || senderAddr == Attacker || senderAddr == Owner) -> 
+				% First parameter is sender of the transaction and second parameter is the origin of the transaction
+				(call_withdraw(senderAddr,senderAddr).
+				(((senderAddr == Normal || senderAddr == Owner) ->
+					(get_transfer_EmptyFallback(senderAddr,senderAddr).get_succWithdraw).harness(destructCounter)
+				<> (senderAddr == Attacker) ->
+					((get_transfer_NoFallback(senderAddr,senderAddr).get_failReward.harness(destructCounter)) +
+					(get_transfer_Fallback(senderAddr,senderAddr).get_succReward.
+						AttackerContract(senderAddr,senderAddr,1,2,destructCounter)))) +
+				(get_failWithdraw.harness(destructCounter))))
+			<> delta)
+		<> delta;
+		
+	GuessingGame(owner:Address,guessNum:Nat,endGame:Bool,winner:Address,winnerMoney:Int,balance:Real) =
+		sum value:Int.sum addr:Address.sum number:Nat.get_play(value,addr,number).
+			play(owner,guessNum,endGame,winner,winnerMoney,balance,value,addr,number) +
+		sum senderAddr:Address.get_reward(senderAddr).
+			reward(owner,guessNum,endGame,winner,winnerMoney,balance,senderAddr) +
+		sum senderAddr:Address.sum originAddr:Address.get_withdraw(senderAddr,originAddr).
+			withdraw(owner,guessNum,endGame,winner,winnerMoney,balance,senderAddr,originAddr) +
+		sum value:Int.sum addr:Address.get_selfdestruct(value,addr).
+			GuessingGame(owner,guessNum,endGame,winner,winnerMoney,balance + value);
+		
+	play(owner:Address,guessNum:Nat,endGame:Bool,winner:Address,winnerMoney:Int,balance:Real,value:Int,addr:Address,number:Nat) =
+		(balance < 70) ->
+			((endGame == false) ->
+				(play_firstSuccess.
+				(number == guessNum) ->
+					(call_succPlay.correctGuess.GuessingGame(owner,guessNum,true,addr,value,balance + value))
+				<> call_succPlay.wrongGuess.GuessingGame(owner,guessNum,endGame,winner,winnerMoney,balance + value))
+			<> play_firstFail.call_failPlay.GuessingGame(owner,guessNum,endGame,winner,winnerMoney,balance))
+		<> call_failPlay.GuessingGame(owner,guessNum,endGame,winner,winnerMoney,balance);
+		
+	reward(owner:Address,guessNum:Nat,endGame:Bool,winner:Address,winnerMoney:Int,balance:Real,senderAddr:Address) =
+		(senderAddr == owner) ->
+			(reward_firstSuccess.
+			(balance >= 50) ->
+				((endGame == true) ->
+					(reward_secondSuccess.
+					((call_transfer_EmptyFallback(winner,senderAddr).call_succReward.
+						GuessingGame(owner,guessNum,true,winner,winnerMoney,
+						(balance - (((2/100)*(winnerMoney - balance)) + winnerMoney)))) +
+					(call_transfer_NoFallback(winner,senderAddr).call_failReward.
+						GuessingGame(owner,guessNum,endGame,winner,winnerMoney,balance)) +
+					(call_transfer_Fallback(winner,senderAddr).call_succReward.GuessingGame(owner,guessNum,true,winner,winnerMoney,
+						(balance - (((2/100)*(winnerMoney - balance)) + winnerMoney))))))
+				<> reward_secondFail.call_failReward.GuessingGame(owner,guessNum,endGame,winner,winnerMoney,balance))
+			<> call_failReward.GuessingGame(owner,guessNum,endGame,winner,winnerMoney,balance))
+		<> reward_firstFail.call_failReward.GuessingGame(owner,guessNum,endGame,winner,winnerMoney,balance);
+		
+	withdraw(owner:Address,guessNum:Nat,endGame:Bool,winner:Address,winnerMoney:Int,balance:Real,senderAddr:Address,originAddr:Address) =
+		(originAddr == owner) ->
+			(withdraw_firstSuccess.originCheck(senderAddr,originAddr,owner).
+			(balance > 0) ->
+				((call_transfer_EmptyFallback(senderAddr,originAddr).call_succWithdraw.
+					GuessingGame(owner,guessNum,endGame,winner,winnerMoney,0)) +
+				(call_transfer_NoFallback(senderAddr,originAddr).call_failWithdraw.
+					GuessingGame(owner,guessNum,endGame,winner,winnerMoney,balance)) +
+				(call_transfer_Fallback(senderAddr,originAddr).call_succWithdraw.
+					GuessingGame(owner,guessNum,endGame,winner,winnerMoney,0)))
+			<> delta)
+		<> withdraw_firstFail.call_failWithdraw.GuessingGame(owner,guessNum,endGame,winner,winnerMoney,balance);
+		
+	AttackerContract(addr:Address,originAddr:Address,i:Int,eta:Nat,destructCounter:Int) =
+		(i < eta) ->
+			((sum value:Int.(value < 2 && value > 0) -> 
+				(sum number:Nat.(number == 50 || number == 67) -> 
+					call_play(value*10,addr,number).(get_succPlay + get_failPlay).
+					AttackerContract(addr,originAddr,i + 1,eta,destructCounter) 
+				<> delta)
+			<> delta) +
+			(call_reward(addr).(get_transfer_Fallback(addr,originAddr).get_succReward + get_failReward).
+				AttackerContract(addr,originAddr,i + 1,eta,destructCounter)) +
+			(call_withdraw(addr,originAddr).
+				(get_transfer_Fallback(addr,originAddr).get_succWithdraw + get_failWithdraw).
+				AttackerContract(addr,originAddr,i + 1,eta,destructCounter)))
+		<> harness(destructCounter);
+
+init
+	allow({start,play_firstSuccess,play_firstFail,succPlay,failPlay,gameReward,reward_firstSuccess,reward_firstFail,
+		   reward_secondSuccess,reward_secondFail,transfer_EmptyFallback,transfer_NoFallback,transfer_Fallback,
+		   succReward,failReward,gameWithdraw,withdraw_firstSuccess,withdraw_firstFail,originCheck,succWithdraw,
+		   failWithdraw,correctGuess,wrongGuess,selfdestruct
+	},
+		comm({call_play|get_play -> start,
+			  call_succPlay|get_succPlay -> succPlay,
+			  call_failPlay|get_failPlay -> failPlay,
+			  call_reward|get_reward -> gameReward,
+			  call_transfer_EmptyFallback|get_transfer_EmptyFallback -> transfer_EmptyFallback,
+			  call_transfer_NoFallback|get_transfer_NoFallback -> transfer_NoFallback,
+			  call_transfer_Fallback|get_transfer_Fallback -> transfer_Fallback,
+			  call_succReward|get_succReward -> succReward,
+			  call_failReward|get_failReward -> failReward,
+			  call_withdraw|get_withdraw -> gameWithdraw,
+			  call_succWithdraw|get_succWithdraw -> succWithdraw,
+			  call_failWithdraw|get_failWithdraw -> failWithdraw,
+			  call_selfdestruct|get_selfdestruct -> selfdestruct
+		},
+			harness(0) || GuessingGame(Owner,67,false,null,0,40)));

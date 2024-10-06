@@ -1,0 +1,376 @@
+sort Address;
+cons Normal,Attacker,Owner,null,Contract : Address;
+map
+	equal : Address#Address -> Bool;
+var ad1,ad2: Address;
+eqn
+	equal(Normal,Normal) = true;
+	equal(Normal,Attacker) = false;
+	equal(Normal,Owner) = false;
+	equal(Normal,null) = false;
+	equal(Normal,Contract) = false;
+	equal(Attacker,Attacker) = true;
+	equal(Attacker,Normal) = false;
+	equal(Attacker,Owner) = false;
+	equal(Attacker,null) = false;
+	equal(Attacker,Contract) = false;
+	equal(Owner,Owner) = true;
+	equal(Owner,Normal) = false;
+	equal(Owner,Attacker) = false;
+	equal(Owner,null) = false;
+	equal(Owner,Contract) = false;
+	equal(null,null) = true;
+	equal(null,Normal) = false;
+	equal(null,Attacker) = false;
+	equal(null,Owner) = false;
+	equal(null,Contract) = false;
+	equal(Contract,Contract) = true;
+	equal(Contract,Normal) = false;
+	equal(Contract,Attacker) = false;
+	equal(Contract,Owner) = false;
+	equal(Contract,null) = false;
+	ad1 == ad2 = equal(ad1,ad2);
+%-------------------------------------------------
+sort FunctionName;
+cons initWallet,execute,initMultiOwned : FunctionName;
+map
+	equalFunc : FunctionName#FunctionName -> Bool;
+var f1,f2: FunctionName;
+eqn
+	equalFunc(initWallet,initWallet) = true;
+	equalFunc(initWallet,execute) = false;
+	equalFunc(initWallet,initMultiOwned) = false;
+	equalFunc(initWallet,changeOwner) = false;
+	equalFunc(execute,execute) = true;
+	equalFunc(execute,initWallet) = false;
+	equalFunc(execute,initMultiOwned) = false;
+	equalFunc(execute,changeOwner) = false;
+	equalFunc(initMultiOwned,initMultiOwned) = true;
+	equalFunc(execute,initMultiOwned) = false;
+	equalFunc(initWallet,initMultiOwned) = false;
+	equalFunc(initWallet,changeOwner) = false;
+	equalFunc(changeOwner,changeOwner) = true;
+	equalFunc(execute,changeOwner) = false;
+	equalFunc(initWallet,changeOwner) = false;
+	equalFunc(initMultiOwned,changeOwner) = false;
+	f1 == f2 = equalFunc(f1,f2);
+%-------------------------------------------------
+sort Transaction;
+cons emptyTranaction : Transaction;
+	 addTranaction : Address#Int -> Transaction;
+map
+	getAddressTransact : Transaction -> Address;
+	getValueTransact : Transaction -> Int;
+var
+	a1 : Address;
+	v1 : Int;
+eqn
+	getAddressTransact(emptyTranaction) = null;
+	getAddressTransact(addTranaction(a1,v1)) = a1;
+	getValueTransact(emptyTranaction) = -2;
+	getValueTransact(addTranaction(a1,v1)) = v1;
+%-------------------------------------------------
+sort mapping;
+cons emptyMapping : mapping;
+	 % Nat is instead of the hash
+	 addMapping : Nat#Transaction#mapping -> mapping;
+map
+	retValueMapping : Nat#mapping -> Transaction;
+	searchMapping : Nat#mapping -> Bool;
+	updateMapping : Nat#Transaction#mapping -> mapping;
+var
+	array : mapping;
+	b,d : Transaction;
+	a,c : Nat;
+eqn
+	retValueMapping(a,emptyMapping) = emptyTranaction;
+	retValueMapping(a,addMapping(c,b,array)) = if(a == c,b,retValueMapping(a,array));
+	searchMapping(a,emptyMapping) = false;
+	searchMapping(a,addMapping(c,b,array)) = if(a == c,true,searchMapping(a,array));
+	updateMapping(a,b,emptyMapping) = emptyMapping;
+	updateMapping(a,b,addMapping(c,d,array)) = 
+		if(a == c,addMapping(a,b,array),addMapping(c,d,updateMapping(a,b,array)));
+%-------------------------------------------------
+act
+	call_initWallet,get_initWallet,init_Wallet : Int#Address#Int#Int;
+	call_succFallback,get_succFallback,succFallback;
+	call_failFallback,get_failFallback,failFallback;
+	call_delegatecall,get_delegatecall,delegatecall : Int#Int#Address#mapping#Int#FunctionName#Address#Int#Int
+		#Address#Address#Int#Nat#Address#Address;
+	call_updateInitWallet,get_updateInitWallet,updateInitWallet : Int#Int#Address#mapping#Int;
+	call_succInitWallet,get_succInitWallet,succInitWallet;
+	call_failInitWallet,get_failInitWallet,failInitWallet;
+	call_execute,get_execute,_execute : Int#Address#Address#Int#Nat;
+	call_failLibraryExecute,get_failLibraryExecute,failLibraryExecute;
+	call_succLibraryExecute,get_succLibraryExecute,succLibraryExecute;
+	call_succExecuteWithFallback,get_succExecuteWithFallback,succExecuteWithFallback;
+	call_succExecute,get_succExecute,succExecute;
+	call_failExecute,get_failExecute,failExecute;
+	call_updateTransferExecute,get_updateTransferExecute,updateTransferExecute :  Int;
+	call_updateTransactionExecute,get_updateTransactionExecute,updateTransactionExecute : mapping;
+	call_transfer_EmptyFallback,get_transfer_EmptyFallback,transfer_EmptyFallback : Address;
+	call_transfer_NoFallback,get_transfer_NoFallback,transfer_NoFallback : Address;
+	call_transfer_Fallback,get_transfer_Fallback,transfer_Fallback : Address;
+	update_owners,update_required,update_dailyLimit;
+	delegating;
+	call_selfdestruct,get_selfdestruct,selfdestruct : Int#Address;
+	call_initMultiOwned,get_initMultiOwned,init_MultiOwned : Int#Address#Int;
+	call_succInitMultiOwned,get_succInitMultiOwned,succInitMultiOwned;
+	call_failInitMultiOwned,get_failInitMultiOwned,failInitMultiOwned;
+	call_updateInitMultiOwned,get_updateInitMultiOwned,updateInitMultiOwned : Int#Address#mapping#Int;
+	call_changeOwner,get_changeOwner,change_Owner : Address#Address;
+	
+proc
+	harness(destructCounter:Int) =
+		(destructCounter == 0) ->
+			(sum value:Int.(value >= 0 && value < 2) ->
+				(sum addr:Address.(addr == Normal || addr == Attacker) ->
+					(sum required:Int.(required == 1 || required == 2) ->
+						(sum daylimit:Int.(daylimit > 95 && daylimit < 100) ->
+							(call_initWallet(value,addr,required,daylimit).
+							(get_succFallback + get_failFallback + get_succInitWallet + get_failInitWallet).
+							harness(destructCounter))
+						<> delta)
+					<> delta)
+				<> delta)
+			<> delta +
+			sum value:Int.(value >= 0 && value < 2) ->
+				(sum addr:Address.(addr == Normal || addr == Attacker) ->
+					(sum required:Int.(required == 1 || required == 2) ->
+						(call_initMultiOwned(value,addr,required).
+						(get_succFallback + get_failFallback + get_succInitMultiOwned + get_failInitMultiOwned).
+						harness(destructCounter))
+					<> delta)
+				<> delta)
+			<> delta +
+			sum value:Int.(value >= 0 && value < 2) ->
+				(sum fromAddr:Address.(fromAddr == Normal || fromAddr == Attacker || fromAddr == Owner) ->
+					(sum toAddr:Address.(toAddr == Normal || toAddr == Attacker || toAddr == Owner) ->
+						call_changeOwner(fromAddr,toAddr).
+					<> delta)
+				<> delta)
+			<> delta +
+			sum value:Int.(value >= 0 && value < 2) ->
+				(sum senderAddr:Address.(senderAddr == Normal || senderAddr == Attacker) ->
+					(sum recvAddr:Address.(recvAddr == Normal || recvAddr == Attacker || recvAddr == null) ->
+						(sum amount:Int.(amount > 1 && amount < 3) ->
+							(sum hashIndex:Nat.(hashIndex > 0 && hashIndex < 3) ->
+								call_execute(value,senderAddr,recvAddr,amount,hashIndex).
+								(((get_succFallback + get_failFallback + get_succExecute + get_failExecute).
+									harness(destructCounter))+ 
+								(get_succExecuteWithFallback.AttackerContract(recvAddr,1,3,destructCounter)))
+							<> delta)
+						<> delta)
+					<> delta)
+				<> delta)
+			<> delta +
+			sum value:Int.(value == 10 || value == 40 || value == 60) -> 
+				(sum addr:Address.(addr == Contract) ->
+					(call_selfdestruct(value,Contract).harness(destructCounter + 1))
+				<> delta)
+			<> delta)
+		<> (destructCounter == 1) ->
+			(sum value:Int.(value >= 0 && value < 2) ->
+				(sum addr:Address.(addr == Normal || addr == Attacker) ->
+					(sum required:Int.(required == 1 || required == 2) ->
+						(sum daylimit:Int.(daylimit > 95 && daylimit < 100) ->
+							(call_initWallet(value,addr,required,daylimit).
+							(get_succFallback + get_failFallback + get_succInitWallet + get_failInitWallet).
+							harness(destructCounter))
+						<> delta)
+					<> delta)
+				<> delta)
+			<> delta +
+			sum value:Int.(value >= 0 && value < 2) ->
+				(sum senderAddr:Address.(senderAddr == Normal || senderAddr == Attacker) ->
+					(sum recvAddr:Address.(recvAddr == Normal || recvAddr == Attacker || recvAddr == null) ->
+						(sum amount:Int.(amount > 1 && amount < 3) ->
+							(sum hashIndex:Nat.(hashIndex > 0 && hashIndex < 3) ->
+								call_execute(value,senderAddr,recvAddr,amount,hashIndex).
+								((get_succFallback + get_failFallback + get_succExecute + get_failExecute).
+									harness(destructCounter) + 
+								get_succExecuteWithFallback.AttackerContract(recvAddr,1,3,destructCounter))
+							<> delta)
+						<> delta)
+					<> delta)
+				<> delta)
+			<> delta)
+		<> delta;
+		
+	Wallet(m_required:Int,m_dailyLimit:Int,m_owners:Address,m_txs:mapping,balance:Int) =
+		sum value:Int.sum newOwner:Address.sum required:Int.sum daylimit:Int.
+			get_initWallet(value,newOwner,required,daylimit).
+				WalletFallback(m_required,m_dailyLimit,m_owners,m_txs,balance,
+				value,initWallet,newOwner,required,daylimit,null,null,0,2000,null,null) +
+		sum value:Int.sum senderAddr:Address.sum recvAddr:Address.sum amount:Int.sum hashIndex:Nat.
+			get_execute(value,senderAddr,recvAddr,amount,hashIndex).
+				WalletFallback(m_required,m_dailyLimit,m_owners,m_txs,balance,
+				value,execute,null,0,0,senderAddr,recvAddr,amount,hashIndex,null,null) +
+		sum value:Int.sum newOwner:Address.sum required:Int.get_initMultiOwned(value,newOwner,required).
+			WalletFallback(m_required,m_dailyLimit,m_owners,m_txs,balance,
+			value,initMultiOwned,newOwner,required,0,null,null,0,2000,null,null) +
+		sum fromAddr:Address.sum toAddr:Address.get_changeOwner(fromAddr,toAddr).
+			WalletFallback(m_required,m_dailyLimit,m_owners,m_txs,balance,
+			value,changeOwner,newOwner,required,0,null,null,0,2000,fromAddr,toAddr) +
+		sum value:Int.sum addr:Address.get_selfdestruct(value,addr).
+			Wallet(m_required,m_dailyLimit,m_owners,m_txs,balance + value);
+			
+	WalletFallback(m_required:Int,m_dailyLimit:Int,m_owners:Address,m_txs:mapping,balance:Int,
+	value:Int,name:FunctionName,newOwner:Address,required:Int,daylimit:Int,
+	senderAddr:Address,recvAddr:Address,amount:Int,hashIndex:Nat,fromAddr:Address,toAddr:Address) =
+		(balance < 155 && balance >= 150) ->
+			((value > 0) ->
+				call_succFallback.
+				Wallet(m_required,m_dailyLimit,m_owners,m_txs,balance + value)
+			<> (value == 0) -> delegating.
+				call_delegatecall(m_required,m_dailyLimit,m_owners,m_txs,balance,
+				name,newOwner,required,daylimit,senderAddr,recvAddr,amount,hashIndex,fromAddr,toAddr).
+				((name == initWallet) ->
+					sum i_required:Int.sum i_dailyLimit:Int.sum i_owners:Address.sum i_txs:mapping.sum i_balance:Int.
+					get_updateInitWallet(i_required,i_dailyLimit,i_owners,i_txs,i_balance).
+					((i_owners == m_owners) -> 
+						call_succInitWallet.
+						Wallet(i_required,i_dailyLimit,i_owners,i_txs,i_balance)
+					<> update_owners.update_required.update_dailyLimit.call_succInitWallet.
+						Wallet(i_required,i_dailyLimit,i_owners,i_txs,i_balance))
+				<> (name == execute) -> 
+					(((recvAddr == Normal) ->
+						(get_transfer_EmptyFallback(recvAddr).
+						sum i_balance:Int.get_updateTransferExecute(i_balance).call_succExecute.
+						Wallet(m_required,m_dailyLimit,m_owners,m_txs,i_balance))
+					<> (recvAddr == Attacker) ->
+						((get_transfer_NoFallback(recvAddr).get_failLibraryExecute.call_failExecute.
+							Wallet(m_required,m_dailyLimit,m_owners,m_txs,balance)) + 
+						(get_transfer_Fallback(recvAddr).
+						sum i_balance:Int.get_updateTransferExecute(i_balance).
+						call_succExecuteWithFallback.Wallet(m_required,m_dailyLimit,m_owners,m_txs,i_balance)))
+					<> delta) +
+					(get_failLibraryExecute.call_failExecute.Wallet(m_required,m_dailyLimit,m_owners,m_txs,balance)) +
+					(sum i_txs:mapping.get_updateTransactionExecute(i_txs).call_succExecute.
+						Wallet(m_required,m_dailyLimit,m_owners,i_txs,balance)) +
+					(get_succLibraryExecute.Wallet(m_required,m_dailyLimit,m_owners,m_txs,balance)))
+				<> (name == initMultiOwned) ->
+					sum i_required:Int.sum i_owners:Address.sum i_txs:mapping.sum i_balance:Int.
+					get_updateInitMultiOwned(i_required,i_owners,i_txs,i_balance).
+					((i_owners == m_owners) -> 
+						call_succInitMultiOwned.
+						Wallet(i_required,m_dailyLimit,i_owners,i_txs,i_balance)
+					<> update_owners.update_required.call_succInitMultiOwned.
+						Wallet(i_required,m_dailyLimit,i_owners,i_txs,i_balance))
+				<> (name == changeOwner) ->
+					(sum i_toAddr:Address.sum i_txs:mapping.call_updateChangeOwner(i_toAddr,i_txs).
+					Wallet+
+					
+				<> delta)
+			<> delta)
+		<> delta;
+	
+	WalletLibrary =
+		sum m_required:Int.sum m_dailyLimit:Int.sum m_owners:Address.sum m_txs:mapping.sum balance:Int.
+		sum name:FunctionName.sum newOwner:Address.sum required:Int.sum daylimit:Int.
+		sum senderAddr:Address.sum recvAddr:Address.sum amount:Int.sum hashIndex:Nat.
+		sum fromAddr:Address.sum toAddr:Address.
+		get_delegatecall(m_required,m_dailyLimit,m_owners,m_txs,balance,name,newOwner,required,daylimit,
+			senderAddr,recvAddr,amount,hashIndex,fromAddr,toAddr).
+		(name == initWallet) ->
+			LibraryInitWallet(m_required,m_dailyLimit,m_owners,m_txs,balance,newOwner,required,daylimit).
+			WalletLibrary
+		<> (name == execute) ->
+			LibraryExecute(m_required,m_dailyLimit,m_owners,m_txs,balance,senderAddr,recvAddr,amount,hashIndex).
+			WalletLibrary
+		<> (name == initMultiOwned) ->
+			LibraryInitMultiOwned(m_required,m_dailyLimit,m_owners,m_txs,balance,newOwner,required).
+			WalletLibrary
+		<> (name == changeOwner) ->
+			LibraryChangeOwner(m_required,m_dailyLimit,m_owners,m_txs,balance,fromAddr,toAddr).
+			WalletLibrary
+		<> delta;
+		
+	LibraryInitWallet(m_required:Int,m_dailyLimit:Int,m_owners:Address,m_txs:mapping,balance:Int,
+	newOwner:Address,required:Int,daylimit:Int) =
+		call_updateInitWallet(required,daylimit,newOwner,m_txs,balance);
+		
+	LibraryExecute(m_required:Int,m_dailyLimit:Int,m_owners:Address,m_txs:mapping,balance:Int,
+	senderAddr:Address,recvAddr:Address,amount:Int,hashIndex:Nat) =
+		sum isOwner:Bool.(isOwner) ->
+			(sum underLimit:Bool.(underLimit == true || m_required == 1) ->
+				((recvAddr == null) ->
+					call_failLibraryExecute
+				<> ((call_transfer_EmptyFallback(recvAddr).call_updateTransferExecute(balance - amount)) +
+					(call_transfer_NoFallback(recvAddr).call_failLibraryExecute) +
+					(call_transfer_Fallback(recvAddr).call_updateTransferExecute(balance - amount))))
+			<> (!searchMapping(hashIndex,m_txs)) ->
+					(call_updateTransactionExecute(addMapping(hashIndex,addTranaction(recvAddr,amount),m_txs)))
+			<> call_succLibraryExecute)
+		<> call_failLibraryExecute;
+		
+	LibraryInitMultiOwned(m_required:Int,m_dailyLimit:Int,m_owners:Address,m_txs:mapping,balance:Int,
+	newOwner:Address,required:Int) =
+		call_updateInitMultiOwned(required,newOwner,m_txs,balance);
+		
+	LibraryChangeOwner(m_required:Int,m_dailyLimit:Int,m_owners:Address,m_txs:mapping,balance:Int,fromAddr:Address,
+	toAddr:Address) =
+		sum isOwner:Bool.(isOwner) ->
+			clearPending.call_updateChangeOwner(toAddr,emptyMapping)
+		<> call_failLibraryChangeOwner;
+		
+	AttackerContract(addr:Address,i:Int,eta:Int,destructCounter:Int) =
+		(i < eta) ->
+			(sum value:Int.(value >= 0 && value < 2) ->
+				(sum required:Int.(required == 1 || required == 2) ->
+					(sum daylimit:Int.(daylimit > 95 && daylimit < 100) ->
+						(call_initWallet(value,addr,required,daylimit).
+						(get_succFallback + get_failFallback + get_succInitWallet + get_failInitWallet).
+						AttackerContract(addr,i + 1,eta,destructCounter))
+					<> delta)
+				<> delta)
+			<> delta +
+			sum value:Int.(value >= 0 && value < 2) ->
+				(sum recvAddr:Address.(recvAddr == Normal || recvAddr == Attacker || recvAddr == null) ->
+					(sum amount:Int.(amount > 1 && amount < 3) ->
+						(sum hashIndex:Nat.(hashIndex > 0 && hashIndex < 3) ->
+							call_execute(value,addr,recvAddr,amount,hashIndex).
+							(get_succFallback + get_succExecute + get_failExecute + get_succExecuteWithFallback).
+							AttackerContract(addr,i + 1,eta,destructCounter)
+						<> delta)
+					<> delta)
+				<> delta)
+			<> delta)
+		<> harness(destructCounter);
+	
+init
+	allow({
+		init_Wallet,succFallback,failFallback,delegatecall,updateInitWallet,succInitWallet,failInitWallet,_execute,
+		failLibraryExecute,succLibraryExecute,succExecuteWithFallback,succExecute,failExecute,updateTransferExecute,
+		updateTransactionExecute,transfer_EmptyFallback,transfer_NoFallback,transfer_Fallback,update_owners,
+		update_required,update_dailyLimit,delegating,selfdestruct,init_MultiOwned,succInitMultiOwned,failInitMultiOwned,
+		updateInitMultiOwned
+	},
+		comm({
+			call_initWallet|get_initWallet -> init_Wallet,
+			call_succFallback|get_succFallback -> succFallback,
+			call_failFallback|get_failFallback -> failFallback,
+			call_delegatecall|get_delegatecall -> delegatecall,
+			call_updateInitWallet|get_updateInitWallet -> updateInitWallet,
+			call_succInitWallet|get_succInitWallet -> succInitWallet,
+			call_failInitWallet|get_failInitWallet -> failInitWallet,
+			call_execute|get_execute -> _execute,
+			call_failLibraryExecute|get_failLibraryExecute -> failLibraryExecute,
+			call_succLibraryExecute|get_succLibraryExecute -> succLibraryExecute,
+			call_succExecuteWithFallback|get_succExecuteWithFallback -> succExecuteWithFallback,
+			call_succExecute|get_succExecute -> succExecute,
+			call_failExecute|get_failExecute -> failExecute,
+			call_updateTransferExecute|get_updateTransferExecute -> updateTransferExecute,
+			call_updateTransactionExecute|get_updateTransactionExecute -> updateTransactionExecute,
+			call_transfer_EmptyFallback|get_transfer_EmptyFallback -> transfer_EmptyFallback,
+			call_transfer_NoFallback|get_transfer_NoFallback -> transfer_NoFallback,
+			call_transfer_Fallback|get_transfer_Fallback -> transfer_Fallback,
+			call_selfdestruct|get_selfdestruct -> selfdestruct,
+			call_initMultiOwned|get_initMultiOwned -> init_MultiOwned,
+			call_succInitMultiOwned|get_succInitMultiOwned -> succInitMultiOwned,
+			call_failInitMultiOwned|get_failInitMultiOwned -> failInitMultiOwned,
+			call_updateInitMultiOwned|get_updateInitMultiOwned -> updateInitMultiOwned
+		},
+		harness(0) || 
+		Wallet(1,50,Normal,addMapping(1,addTranaction(Normal,10),emptyMapping),150) ||
+		WalletLibrary));

@@ -1,0 +1,136 @@
+sort Address;
+cons Normal,Attacker,Owner,null,Contract : Address;
+map
+	equal : Address#Address -> Bool;
+var ad1,ad2: Address;
+eqn
+	equal(Normal,Normal) = true;
+	equal(Normal,Attacker) = false;
+	equal(Normal,Owner) = false;
+	equal(Normal,null) = false;
+	equal(Normal,Contract) = false;
+	equal(Attacker,Attacker) = true;
+	equal(Attacker,Normal) = false;
+	equal(Attacker,Owner) = false;
+	equal(Attacker,null) = false;
+	equal(Attacker,Contract) = false;
+	equal(Owner,Owner) = true;
+	equal(Owner,Normal) = false;
+	equal(Owner,Attacker) = false;
+	equal(Owner,null) = false;
+	equal(Owner,Contract) = false;
+	equal(null,null) = true;
+	equal(null,Normal) = false;
+	equal(null,Attacker) = false;
+	equal(null,Owner) = false;
+	equal(null,Contract) = false;
+	equal(Contract,Contract) = true;
+	equal(Contract,Normal) = false;
+	equal(Contract,Attacker) = false;
+	equal(Contract,Owner) = false;
+	equal(Contract,null) = false;
+	ad1 == ad2 = equal(ad1,ad2);
+%-------------------------------------------------
+act
+	call_bid,get_bid,start : Int#Address;
+	bid_firstSuccess,bid_firstFail;
+	call_succBid,get_succBid,succBid;
+	call_failBid,get_failBid,failBid;
+	call_transfer_EmptyFallback,get_transfer_EmptyFallback,transfer_EmptyFallback : Address;
+	call_transfer_NoFallback,get_transfer_NoFallback,transfer_NoFallback : Address;
+	call_transfer_Fallback,get_transfer_Fallback,transfer_Fallback : Address;
+	bid_secondSuccess,bid_secondFail;
+	call_updateAuction,get_updateAuction,updateAuction : Int#Address;
+	call_selfdestruct,get_selfdestruct,selfdestruct : Int#Address;
+
+proc
+	harness(destructCounter:Int) =
+		(destructCounter == 0) ->
+			(sum value:Int.(value < 6 && value > 0) -> 
+				(sum addr:Address.(addr == Normal || addr == Attacker) -> 
+					(call_bid(value*10,addr).
+					((get_succBid.harness(destructCounter)) +
+					(sum PreBidder:Address.
+					(PreBidder == Normal) ->
+						(get_transfer_EmptyFallback(PreBidder).get_succBid).harness(destructCounter)
+					<> (PreBidder == Attacker) ->
+						((get_transfer_NoFallback(PreBidder).get_failBid) + 
+						(get_transfer_Fallback(PreBidder).get_succBid.
+						AttackerContract(PreBidder,1,3,value*10,addr))).
+						harness(destructCounter)
+					<> delta) +
+					(get_failBid.harness(destructCounter))))
+				<> delta)
+			<> delta +
+			sum value:Int.(value == 10 || value == 40 || value == 60) -> 
+				(sum addr:Address.(addr == Contract) ->
+					(call_selfdestruct(value,Contract).harness(destructCounter + 1))
+				<> delta)
+			<> delta)
+		<> (destructCounter == 1) ->
+			(sum value:Int.(value < 6 && value > 0) -> 
+				(sum addr:Address.(addr == Normal || addr == Attacker) -> 
+					(call_bid(value*10,addr).
+					((get_succBid.harness(destructCounter)) +
+					(sum PreBidder:Address.
+					(PreBidder == Normal) ->
+						(get_transfer_EmptyFallback(PreBidder).get_succBid).harness(destructCounter)
+					<> (PreBidder == Attacker) ->
+						((get_transfer_NoFallback(PreBidder).get_failBid) + 
+						(get_transfer_Fallback(PreBidder).get_succBid.
+						AttackerContract(PreBidder,1,3,value*10,addr))).harness(destructCounter)
+					<> delta) +
+					(get_failBid.harness(destructCounter))))
+				<> delta)
+			<> delta)
+		<> delta;
+	
+	Auction(highestBidder:Address,highestBid:Int,balance:Int) =
+		sum value:Int.sum addr:Address.get_bid(value,addr).bid(highestBidder,highestBid,balance,value,addr) +
+		sum value:Int.sum addr:Address.get_updateAuction(value,addr).Auction(addr,value,balance) +
+		sum value:Int.sum addr:Address.get_selfdestruct(value,addr).Auction(highestBidder,highestBid,balance+value);		
+	
+	bid(highestBidder:Address,highestBid:Int,balance:Int,value:Int,addr:Address) =
+		(value > highestBid) ->
+			(bid_firstSuccess.
+			((highestBidder == null && highestBid == 0) -> 
+				(call_succBid.Auction(addr,value,balance + value))
+			<>(highestBidder != null || highestBid != 0) ->
+				((call_transfer_EmptyFallback(highestBidder).bid_secondSuccess.call_succBid.
+					Auction(addr,value,value)) +
+				(call_transfer_NoFallback(highestBidder).bid_secondFail.call_failBid.
+					Auction(highestBidder,highestBid,balance)) +
+				(call_transfer_Fallback(highestBidder).bid_secondSuccess.call_succBid.
+					Auction(highestBidder,highestBid,balance - highestBid)))
+			<> delta))
+		<> bid_firstFail.call_failBid.Auction(highestBidder,highestBid,balance);
+		
+	AttackerContract(PreBidder:Address,i:Int,eta:Nat,initValue:Int,addr:Address) =
+		(i < eta) ->
+			(sum value:Int.(value < 6 && value > 0) ->
+				(call_bid(value*10,PreBidder).
+				get_transfer_Fallback(PreBidder).get_succBid.
+				AttackerContract(PreBidder,i + 1,eta,initValue,addr).
+				ContinuationBid(initValue,addr))
+			<> delta)
+		<> ContinuationBid(initValue,addr);
+		
+	ContinuationBid(value:Int,addr:Address) =
+		call_updateAuction(value,addr);
+		
+init
+	allow({
+		start,succBid,bid_firstSuccess,bid_firstFail,failBid,transfer_EmptyFallback,transfer_NoFallback,
+		transfer_Fallback,bid_secondSuccess,bid_secondFail,updateAuction,selfdestruct
+	},
+		comm({
+			call_bid|get_bid -> start,
+			call_succBid|get_succBid -> succBid,
+			call_failBid|get_failBid -> failBid,
+			call_transfer_EmptyFallback|get_transfer_EmptyFallback -> transfer_EmptyFallback,
+			call_transfer_NoFallback|get_transfer_NoFallback -> transfer_NoFallback,
+			call_transfer_Fallback|get_transfer_Fallback -> transfer_Fallback,
+			call_updateAuction|get_updateAuction -> updateAuction,
+			call_selfdestruct|get_selfdestruct -> selfdestruct
+		},
+			harness(0) || Auction(null,0,0)));
