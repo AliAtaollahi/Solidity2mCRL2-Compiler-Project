@@ -34,6 +34,7 @@ public class NameAnalyzer extends Visitor<Void> {
     private FunctionDefinition currentfunctionDefinition;
     private Statement currentStatement;
     private Boolean isCurrentPosOfStateVariableLeft = false;
+    private ContractDefinitionSymbolTableItem currentContractSymbolTableItem;
 
     @Override
     public Void visit(SourceUnit sourceUnit) {
@@ -167,6 +168,8 @@ public class NameAnalyzer extends Visitor<Void> {
                 type,
                 contractDefinition
         );
+        
+        this.currentContractSymbolTableItem = contractSymbolTableItem;
 
         // Try to insert the contract symbol into the current symbol table
         try {
@@ -402,6 +405,8 @@ public class NameAnalyzer extends Visitor<Void> {
                 functionDefinition,
                 currentContractDefinition
                 );
+        
+        functionSymbolTableItem.setContractDefinitionSymbolTableItem(this.currentContractSymbolTableItem);
 
         // Store the function's modifiers in the symbol table item
         if (functionDefinition.getModifierList() != null) {

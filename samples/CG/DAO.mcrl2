@@ -33,7 +33,7 @@ eqn
 %-------------------------------------------------
 sort mapping;
 cons empty : mapping;
-	 add : Address#Int#mapping -> mapping;
+	add : Address#Int#mapping -> mapping;
 map
 	retValue : Address#mapping -> Int;
 	search : Address#mapping -> Bool;
@@ -119,9 +119,10 @@ proc
 		<> delta;
 		
 	DAO(userBalances:mapping,DaoBal:Int) =
-		sum value:Int.sum addr:Address.get_addToBalance(value,addr).addToBalance(userBalances,DaoBal,value,addr) +
-		sum value:Int.sum addr:Address.get_withdrawBalance(value,addr).
-			withdrawBalance(userBalances,DaoBal,value,addr) +
+		sum value:Int.sum addr:Address.get_addToBalance(value,addr).
+		    addToBalance(userBalances,DaoBal,value,addr) +
+		sum amount:Int.sum addr:Address.get_withdrawBalance(amount,addr).
+			withdrawBalance(userBalances,DaoBal,amount,addr) +
 		sum value:Int.sum addr:Address.get_updateDAO(value,addr).
 			DAO(update(addr,(retValue(addr,userBalances)) - value,userBalances),DaoBal) +
 		sum value:Int.sum addr:Address.get_selfdestruct(value,addr).
@@ -129,13 +130,15 @@ proc
 	
 	addToBalance(userBalances:mapping,DaoBal:Int,value:Int,addr:Address) =
 		(retValue(addr,userBalances) < 30) -> 
-			((!search(addr,userBalances)) -> 
+			(
+			(!search(addr,userBalances)) ->
 				(call_succAdd(addr,value).DAO(add(addr,value,userBalances),DaoBal + value))
-			<> (call_succAdd(addr,value).
-				DAO(update(addr,(retValue(addr,userBalances)) + value,userBalances),DaoBal + value)))
+			<>
+			    (call_succAdd(addr,value).DAO(update(addr,(retValue(addr,userBalances)) + value,userBalances),DaoBal + value))
+			)
 		<> call_failAdd.DAO(userBalances,DaoBal);
 	
-	withdrawBalance(userBalances:mapping,DaoBal:Int,value:Int,addr:Address) =
+	withdrawBalance(userBalances:mapping,DaoBal:Int,amount:Int,addr:Address) =
 		(search(addr,userBalances) && retValue(addr,userBalances) >= value) ->
 			((call_transfer_EmptyFallback(addr).withdraw_firstSuccess.call_succWithdraw.
 				DAO(update(addr,retValue(addr,userBalances) - value,userBalances),DaoBal - value)) +

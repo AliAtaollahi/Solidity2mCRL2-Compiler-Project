@@ -25,6 +25,9 @@ import main.ast.nodes.expression.value.ImportPath;
 import main.ast.nodes.expression.value.StorageLocation;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 import static main.ast.nodes.expression.operators.UnaryOperator.*;
 import static main.ast.nodes.expression.operators.UserDefinableOperator.*;
@@ -33,6 +36,9 @@ public class TypeEvaluator extends Visitor<Type> {
 
     private SymbolTable symbolTable;
     private SymbolTableItem currentItemFoundFromSymbolTable;
+    private boolean checkDelegatecall = false;
+    private ArrayList<SymbolTableItem> currentDelegatecallFunctionsFound = new ArrayList<>();
+    private StructDefinitionSymbolTableItem currentStructDefinitionSymbolTableItem;
 
     public TypeEvaluator(SymbolTable symbolTable_) {
         this.symbolTable = symbolTable_;
@@ -207,8 +213,11 @@ public class TypeEvaluator extends Visitor<Type> {
             }
             else if (functionName instanceof AccessExpression) {
                 Type type = ((AccessExpression) functionName).getMaster().accept(this);
-                if (type instanceof AddressType)
+                if (type instanceof AddressType) {
+                    checkIsDelegatecallAndHandle((AccessExpression) functionName, (ExpressionList) args);
                     return new AddressType();
+                }
+
                 String contractName = ((UserDefinedTypeName)type).getTypeChain().get(0).getName();
                 ContractDefinitionSymbolTableItem contractItem = ((ContractDefinitionSymbolTableItem)this.symbolTable.getItem(ContractDefinitionSymbolTableItem.START_KEY + contractName, true));
                 SymbolTableItem functionItem = contractItem.getContractSymbolTable().getFunctionItem(((AccessExpression) functionName).getMember(), args, this);
@@ -228,6 +237,139 @@ public class TypeEvaluator extends Visitor<Type> {
 
         return null; // Return null if the type cannot be inferred.
     }
+
+    private void checkIsDelegatecallAndHandle(AccessExpression functionName, ExpressionList args) {
+        if (functionName.getMember().getName().equals("delegatecall")) {
+            String calledFunctionName = ((StringLiteral)((ExpressionList)((FunctionCallExpression) args.getExpressionList().getFirst()).getArgs()).getExpressionList().getFirst()).getValue();
+            for (SymbolTableItem item : SymbolTable.root.items.values()) {
+                if (item instanceof ContractDefinitionSymbolTableItem) {
+                    for (SymbolTableItem item1 : ((ContractDefinitionSymbolTableItem)item).getContractSymbolTable().items.values()) {
+                        if (item1 instanceof FunctionDefinitionSymbolTableItem && ((FunctionDefinitionSymbolTableItem)item1).getFunctionName().equals(calledFunctionName.substring(1, calledFunctionName.indexOf('(')))) {
+                            FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem = (FunctionDefinitionSymbolTableItem) item1;
+                            ArrayList<Parameter> parameters = functionDefinitionSymbolTableItem.getFunctionDefinitionPointer().getParameterList().getParameters();
+
+                            String paramTypes = calledFunctionName.substring(calledFunctionName.indexOf('(') + 1, calledFunctionName.indexOf(')'));
+
+                            String[] extractedTypes = paramTypes.split(",\\s*");
+
+                            if (extractedTypes.length != parameters.size()) {
+                                continue;
+                            }
+
+                            for (int i = 0; i < extractedTypes.length; i++) {
+                                Type paramType = parameters.get(i).getType();
+                                String extractedType = extractedTypes[i];
+
+                                // Assuming you have a method `isTypeCompatible` to match string representation of types with actual types
+                                if (!isTypeCompatible(extractedType, paramType)) {
+                                    continue;
+                                }
+                            }
+
+                            this.currentDelegatecallFunctionsFound.add(item1);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean isTypeCompatible(String extractedType, Type paramType) {
+        // Handle uint types of any size
+        if (paramType instanceof UintType && extractedType.startsWith("uint")) {
+            UintType uintType = (UintType) paramType;
+            String expectedBits = uintType.getNumberOfBits();
+            String extractedBits = extractedType.replaceAll("\\D+", ""); // Extract digits from the type
+            return expectedBits.isEmpty() || extractedBits.equals(expectedBits); // Handle default "uint" and specific "uint256"
+        }
+
+        // Handle int types of any size
+        if (paramType instanceof IntType && extractedType.startsWith("int")) {
+            IntType intType = (IntType) paramType;
+            String expectedBits = intType.getNumberOfBits();
+            String extractedBits = extractedType.replaceAll("\\D+", ""); // Extract digits from the type
+            return expectedBits.isEmpty() || extractedBits.equals(expectedBits); // Handle default "int" and specific "int256"
+        }
+
+        // Handle address type
+        if (paramType instanceof AddressType && extractedType.equals("address")) {
+            return true;
+        }
+
+        // Handle payable address type
+        if (paramType instanceof AddressPayable && extractedType.equals("address")) {
+            return true;
+        }
+
+        // Handle bool type
+        if (paramType instanceof BoolType && extractedType.equals("bool")) {
+            return true;
+        }
+
+        // Handle string type
+        if (paramType instanceof StringType && extractedType.equals("string")) {
+            return true;
+        }
+
+        // Handle fixed-point types
+        if (paramType instanceof FixedType && extractedType.startsWith("fixed")) {
+            FixedType fixedType = (FixedType) paramType;
+            String expectedBits = fixedType.getNumberOfBits();
+            String extractedBits = extractedType.replaceAll("\\D+", ""); // Extract digits from the type
+            return extractedBits.equals(expectedBits);
+        }
+
+        // Handle ufixed-point types
+        if (paramType instanceof UfixedType && extractedType.startsWith("ufixed")) {
+            UfixedType ufixedType = (UfixedType) paramType;
+            String expectedBits = ufixedType.getNumberOfBits();
+            String extractedBits = extractedType.replaceAll("\\D+", ""); // Extract digits from the type
+            return extractedBits.equals(expectedBits);
+        }
+
+        // Handle list type (dynamic and fixed arrays)
+        if (paramType instanceof ListType && extractedType.endsWith("[]")) {
+            String baseType = extractedType.substring(0, extractedType.length() - 2); // remove "[]"
+            ListType listType = (ListType) paramType;
+            return isTypeCompatible(baseType, listType.getType()); // Recursively check base type
+        }
+
+        // Handle fixed-size array (e.g., uint256[10])
+        if (paramType instanceof ListType && extractedType.matches(".*\\[\\d+\\]")) {
+            // Extract the base type (e.g., "uint256" from "uint256[10]")
+            String baseType = extractedType.substring(0, extractedType.indexOf('['));
+            ListType listType = (ListType) paramType;
+            return isTypeCompatible(baseType, listType.getType()); // Recursively check base type
+        }
+
+        // Handle tuple types
+        if (paramType instanceof TupleType) {
+            TupleType tupleType = (TupleType) paramType;
+            String[] extractedTupleTypes = extractedType
+                    .substring(1, extractedType.length() - 1) // Remove parentheses ()
+                    .split(",\\s*"); // Split by comma and remove any extra spaces
+            if (tupleType.getElementTypes().size() != extractedTupleTypes.length) {
+                return false;
+            }
+            for (int i = 0; i < extractedTupleTypes.length; i++) {
+                if (!isTypeCompatible(extractedTupleTypes[i], tupleType.getElementTypes().get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Handle user-defined types (structs, contracts)
+        if (paramType instanceof UserDefinedTypeName) {
+            UserDefinedTypeName userType = (UserDefinedTypeName) paramType;
+            String typeNameFromChain = userType.getTypeChain().get(userType.getTypeChain().size() - 1).getName(); // Get the last element in the type chain
+            return extractedType.equals(typeNameFromChain);
+        }
+
+        // Default fallback: return false for unmatched types
+        return false;
+    }
+
 
     // TernaryOperatorExpression Type Inference
     @Override
@@ -557,5 +699,29 @@ public class TypeEvaluator extends Visitor<Type> {
 
     public void setCurrentItemFoundFromSymbolTable(SymbolTableItem currentItemFoundFromSymbolTable) {
         this.currentItemFoundFromSymbolTable = currentItemFoundFromSymbolTable;
+    }
+
+    public boolean isCheckDelegatecall() {
+        return checkDelegatecall;
+    }
+
+    public void setCheckDelegatecall(boolean checkDelegatecall) {
+        this.checkDelegatecall = checkDelegatecall;
+    }
+
+    public ArrayList<SymbolTableItem> getCurrentDelegatecallFunctionsFound() {
+        return currentDelegatecallFunctionsFound;
+    }
+
+    public void setCurrentDelegatecallFunctionsFound(ArrayList<SymbolTableItem> currentDelegatecallFunctionsFound) {
+        this.currentDelegatecallFunctionsFound = currentDelegatecallFunctionsFound;
+    }
+
+    public StructDefinitionSymbolTableItem getCurrentStructDefinitionSymbolTableItem() {
+        return currentStructDefinitionSymbolTableItem;
+    }
+
+    public void setCurrentStructDefinitionSymbolTableItem(StructDefinitionSymbolTableItem currentStructDefinitionSymbolTableItem) {
+        this.currentStructDefinitionSymbolTableItem = currentStructDefinitionSymbolTableItem;
     }
 }

@@ -21,6 +21,7 @@ public class FunctionDefinitionSymbolTableItem extends SymbolTableItem {
     private ParameterList returnParameterList;  // Store return parameters
     private Block scope;
     private ContractDefinition contractDefinitionContainer = null;
+    private ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem;
     private FunctionDefinition functionDefinitionPointer;
 
     public FunctionDefinitionSymbolTableItem(String functionName, FunctionDefinition functionDefinition, ContractDefinition contractDefinition) {
@@ -107,6 +108,22 @@ public class FunctionDefinitionSymbolTableItem extends SymbolTableItem {
 
     public void setFunctionDefinitionPointer(FunctionDefinition functionDefinitionPointer) {
         this.functionDefinitionPointer = functionDefinitionPointer;
+    }
+
+    public String getFunctionName() {
+        return functionName;
+    }
+
+    public void setFunctionName(String functionName) {
+        this.functionName = functionName;
+    }
+
+    public ContractDefinitionSymbolTableItem getContractDefinitionSymbolTableItem() {
+        return contractDefinitionSymbolTableItem;
+    }
+
+    public void setContractDefinitionSymbolTableItem(ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem) {
+        this.contractDefinitionSymbolTableItem = contractDefinitionSymbolTableItem;
     }
 }
 

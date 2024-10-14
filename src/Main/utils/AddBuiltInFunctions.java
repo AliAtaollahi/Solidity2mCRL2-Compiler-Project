@@ -9,6 +9,8 @@ import java.nio.file.Paths;
 public class AddBuiltInFunctions {
 
     // Built-in functions in one line
+    private static final String ABI_CONTRACT = " contract abi { function encodeWithSignature(string memory functionSignature, bytes[] memory arguments) public pure returns (bytes memory) { } } ";
+    private static boolean isABI_CONTRACTAddedd = false;
     private static final String BUILT_IN_FUNCTIONS =
             " function transfer_builtIn(address payable recipient, uint256 amount) public { }" +
                     " function payable_builtIn(address targetAddress) public pure returns (address payable) { }" +
@@ -27,8 +29,13 @@ public class AddBuiltInFunctions {
             while ((line = reader.readLine()) != null) {
                 modifiedFileContent.append(line);
 
+                if(!isABI_CONTRACTAddedd) {
+                    modifiedFileContent.append(ABI_CONTRACT);
+                    isABI_CONTRACTAddedd = true;
+                }
+
                 // Insert the built-in functions on the same line after 'contract'
-                if (line.contains("contract ")) {
+                if (line.contains("contract ") && !line.contains("contract abi ")) {
                     modifiedFileContent.append(BUILT_IN_FUNCTIONS);
                 }
 
