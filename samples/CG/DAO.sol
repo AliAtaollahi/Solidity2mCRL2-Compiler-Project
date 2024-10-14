@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 contract DAO {
-    mapping (address => uint) public userBalances1;
-    mapping (address => string) public userBalances2;
+    mapping (address => uint) public userBalances;
+//    mapping (address => string) public userBalances2;
 
 
     function addToBalance() public payable {

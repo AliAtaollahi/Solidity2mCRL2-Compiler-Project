@@ -1,52 +1,109 @@
 sort Address;
 cons Normal,Attacker,Owner,null,Contract : Address;
 map
-        equal : Address#Address -> Bool;
+	equal : Address#Address -> Bool;
 var ad1,ad2: Address;
 eqn
-        equal(Normal,Normal) = true;
-        equal(Normal,Attacker) = false;
-        equal(Normal,Owner) = false;
-        equal(Normal,null) = false;
-        equal(Normal,Contract) = false;
-        equal(Attacker,Attacker) = true;
-        equal(Attacker,Normal) = false;
-        equal(Attacker,Owner) = false;
-        equal(Attacker,null) = false;
-        equal(Attacker,Contract) = false;
-        equal(Owner,Owner) = true;
-        equal(Owner,Normal) = false;
-        equal(Owner,Attacker) = false;
-        equal(Owner,null) = false;
-        equal(Owner,Contract) = false;
-        equal(null,null) = true;
-        equal(null,Normal) = false;
-        equal(null,Attacker) = false;
-        equal(null,Owner) = false;
-        equal(null,Contract) = false;
-        equal(Contract,Contract) = true;
-        equal(Contract,Normal) = false;
-        equal(Contract,Attacker) = false;
-        equal(Contract,Owner) = false;
-        equal(Contract,null) = false;
-        ad1 == ad2 = equal(ad1,ad2);
+	equal(Normal,Normal) = true;
+	equal(Normal,Attacker) = false;
+	equal(Normal,Owner) = false;
+	equal(Normal,null) = false;
+	equal(Normal,Contract) = false;
+	equal(Attacker,Attacker) = true;
+	equal(Attacker,Normal) = false;
+	equal(Attacker,Owner) = false;
+	equal(Attacker,null) = false;
+	equal(Attacker,Contract) = false;
+	equal(Owner,Owner) = true;
+	equal(Owner,Normal) = false;
+	equal(Owner,Attacker) = false;
+	equal(Owner,null) = false;
+	equal(Owner,Contract) = false;
+	equal(null,null) = true;
+	equal(null,Normal) = false;
+	equal(null,Attacker) = false;
+	equal(null,Owner) = false;
+	equal(null,Contract) = false;
+	equal(Contract,Contract) = true;
+	equal(Contract,Normal) = false;
+	equal(Contract,Attacker) = false;
+	equal(Contract,Owner) = false;
+	equal(Contract,null) = false;
+	ad1 == ad2 = equal(ad1,ad2);
 %-------------------------------------------------
-sort mapping;
-cons empty : mapping;
-	add : Address#Int#mapping -> mapping;
+sort MyStruct;
+cons empMyStruct : MyStruct;
+	addMyStruct : Int#Int -> MyStruct;
 map
-	retValue : Address#mapping -> Int;
-	search : Address#mapping -> Bool;
-	update: Address#Int#mapping -> mapping;
+	getXMyStruct : MyStruct -> Int;
+	getYMyStruct : MyStruct -> Int;
 var
-	array : mapping;
+	bqf : Int;
+	zfb : Int;
+eqn
+	getXMyStruct(empMyStruct) = -2;
+	getXMyStruct(addMyStruct(bqf,zfb)) = bqf;
+	getYMyStruct(empMyStruct) = -2;
+	getYMyStruct(addMyStruct(bqf,zfb)) = zfb;
+%-------------------------------------------------
+sort Channel;
+cons empChannel : Channel;
+	addChannel : Address#Int#Int#Bool -> Channel;
+map
+	getPartyAddressChannel : Channel -> Address;
+	getEthBalanceChannel : Channel -> Int;
+	getConfirmTimeChannel : Channel -> Int;
+	getIsOpenChannel : Channel -> Bool;
+var
+	xwr : Address;
+	wcn : Int;
+	bum : Int;
+	ybb : Bool;
+eqn
+	getPartyAddressChannel(empChannel) = null;
+	getPartyAddressChannel(addChannel(xwr,wcn,bum,ybb)) = xwr;
+	getEthBalanceChannel(empChannel) = -2;
+	getEthBalanceChannel(addChannel(xwr,wcn,bum,ybb)) = wcn;
+	getConfirmTimeChannel(empChannel) = -2;
+	getConfirmTimeChannel(addChannel(xwr,wcn,bum,ybb)) = bum;
+	getIsOpenChannel(empChannel) = false;
+	getIsOpenChannel(addChannel(xwr,wcn,bum,ybb)) = ybb;
+%-------------------------------------------------
+sort mapping1;
+cons emptyMapping1 : mapping1;
+	addMapping1 : Address#Int#mapping1 -> mapping1;
+map
+	retValueMapping1 : Address#mapping1 -> Int;
+	searchMapping1 : Address#mapping1 -> Bool;
+	updateMapping1 : Address#Int#mapping1 -> mapping1;
+var
+	array : mapping1;
 	b,d : Int;
 	a,c : Address;
 eqn
-	retValue(a,empty) = -1;
-	retValue(a,add(c,b,array)) = if(a == c,b,retValue(a,array));
-	search(a,empty) = false;
-	search(a,add(c,b,array)) = if(a == c,true,search(a,array));
-	update(a,b,empty) = empty;
-	update(a,b,add(c,d,array)) = if(a == c,add(a,b,array),add(c,d,update(a,b,array)));
+	retValueMapping1(a,emptyMapping1) = -1;
+	retValueMapping1(a,addMapping1(c,b,array)) = if(a == c,b,retValueMapping1(a,array));
+	searchMapping1(a,emptyMapping1) = false;
+	searchMapping1(a,addMapping1(c,b,array)) = if(a == c,true,searchMapping1(a,array));
+	updateMapping1(a,b,emptyMapping1) = emptyMapping1;
+	updateMapping1(a,b,addMapping1(c,d,array)) = if(a == c,addMapping1(a,b,array),addMapping1(c,d,updateMapping1(a,b,array)));
+%-------------------------------------------------
+sort mapping2;
+cons emptyMapping2 : mapping2;
+	addMapping2 : Channel#Nat#mapping2 -> mapping2;
+map
+	retValueMapping2 : Channel#mapping2 -> Nat;
+	searchMapping2 : Channel#mapping2 -> Bool;
+	updateMapping2 : Channel#Nat#mapping2 -> mapping2;
+var
+	array : mapping2;
+	b,d : Nat;
+	a,c : Channel;
+eqn
+	retValueMapping2(a,emptyMapping2) = -1;
+	retValueMapping2(a,addMapping2(c,b,array)) = if(a == c,b,retValueMapping2(a,array));
+	searchMapping2(a,emptyMapping2) = false;
+	searchMapping2(a,addMapping2(c,b,array)) = if(a == c,true,searchMapping2(a,array));
+	updateMapping2(a,b,emptyMapping2) = emptyMapping2;
+	updateMapping2(a,b,addMapping2(c,d,array)) = if(a == c,addMapping2(a,b,array),addMapping2(c,d,updateMapping2(a,b,array)));
 %-------------------------------------------------

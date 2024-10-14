@@ -88,8 +88,7 @@ eqn
 	searchMapping(a,emptyMapping) = false;
 	searchMapping(a,addMapping(c,b,array)) = if(a == c,true,searchMapping(a,array));
 	updateMapping(a,b,emptyMapping) = emptyMapping;
-	updateMapping(a,b,addMapping(c,d,array)) = 
-		if(a == c,addMapping(a,b,array),addMapping(c,d,updateMapping(a,b,array)));
+	updateMapping(a,b,addMapping(c,d,array)) =  if(a == c,addMapping(a,b,array),addMapping(c,d,updateMapping(a,b,array)));
 %-------------------------------------------------
 act
 	call_initWallet,get_initWallet,init_Wallet : Int#Address#Int#Int;

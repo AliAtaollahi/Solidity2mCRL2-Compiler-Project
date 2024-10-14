@@ -2,13 +2,26 @@
 pragma solidity ^0.8.13;
 
 contract DAO {
-    mapping (address => uint) public userBalances;
+    mapping (address => uint) public userBalances1;
+    mapping (address => uint) public userBalances2;
 
     // A struct definition for Deposit
     struct Deposit {
         uint amount;
         address depositor;
     }
+
+    struct Channel {
+        address partyAddress;
+        uint256 ethBalance;
+        uint256 confirmTime;
+        bool isOpen;
+    }
+
+    mapping (Channel => bytes32) public userBalances3;
+
+    // Use the updated useStruct function to return the ethBalance
+//            uint result = useStruct(channel);
 
     // A struct definition for MyStruct
     struct MyStruct {
@@ -22,21 +35,28 @@ contract DAO {
     }
 
     function addToBalance() public payable {
-        userBalances[msg.sender] += msg.value * (10**18);
+        userBalances1[msg.sender] += msg.value * (10**18);
     }
 
     function getUserBalance(address user) public view returns(uint) {
-        return userBalances[user];
+        return userBalances1[user];
     }
 
     function withdrawBalance(uint amount) public {
-        if(userBalances[msg.sender] >= amount){
+        if(userBalances1[msg.sender] >= amount){
             (bool temp,) = msg.sender.call{value : (amount / (10**18))}("");
             require(temp, 'error');
-            userBalances[msg.sender] -= amount;
+            userBalances1[msg.sender] -= amount;
+            userBalances2[msg.sender] -= amount;
 
-//            MyStruct memory myStruct = MyStruct(5, 10);
-//            uint result5 = useStruct(myStruct);
+            Channel memory channel = Channel({
+                partyAddress: msg.sender,
+                ethBalance: amount,
+                confirmTime: block.timestamp,
+                isOpen: true
+            });
+
+            userBalances3[channel] = 0x0;
 
             uint result2 = useStruct({x: 7, y: 3});
         }
