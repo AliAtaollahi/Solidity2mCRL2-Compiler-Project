@@ -3,12 +3,15 @@ package main.visitor;
 import main.ast.nodes.SourceUnit;
 import main.ast.nodes.declaration.StructDefinition;
 import main.ast.nodes.declaration.VariableDeclaration;
+import main.ast.nodes.declaration.utility.Parameter;
+import main.ast.nodes.declaration.utility.ParameterList;
 import main.ast.nodes.expression.primary.Type;
 import main.ast.nodes.expression.type.Mapping;
 import main.ast.nodes.expression.type.primitive.AddressType;
 import main.ast.nodes.expression.type.primitive.BoolType;
 import main.ast.nodes.expression.type.primitive.UintType;
 import main.symbolTable.SymbolTable;
+import main.symbolTable.exceptions.ItemNotFoundException;
 import main.symbolTable.items.*;
 import main.utils.CGUtils;
 import main.utils.DependencyNode;
@@ -20,7 +23,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class CodeGeneration extends Visitor<Void> {
-
+    private String initTab = "";
     private Map<String, String> variableNameMap = new HashMap<>();
     private Map<Pair<Type, Type>, String> mappings = new HashMap<>();
     private String outputPath;
@@ -32,7 +35,19 @@ public class CodeGeneration extends Visitor<Void> {
 
     public CodeGeneration(Set<DependencyNode> initNodes, String outputFileName) {
         this.outputFileName = outputFileName;
-        this.initNodes = initNodes;
+        Set<DependencyNode> clearInitNodes = new HashSet<>();
+        for (DependencyNode dependencyNode : initNodes) {
+            if (dependencyNode.getItemKey() instanceof FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem) {
+                if (!CGUtils.isBuiltIn(functionDefinitionSymbolTableItem.getFunctionName())) {
+                    clearInitNodes.add(dependencyNode);
+                }
+            }
+            else {
+                clearInitNodes.add(dependencyNode);
+            }
+        }
+        this.initNodes = clearInitNodes;
+
         for (DependencyNode dependencyNode : initNodes) {
             if (dependencyNode.getItemKey() instanceof FunctionDefinitionSymbolTableItem) {
                 if(!this.contractDefinitions.contains(((FunctionDefinitionSymbolTableItem) dependencyNode.getItemKey()).getContractDefinitionSymbolTableItem())) {
@@ -49,12 +64,10 @@ public class CodeGeneration extends Visitor<Void> {
         addCommand(this.header, false);
 
         addStrcuts();
-
         addMapings();
-
-        addInit();
-        
+        addAct();
         addProc();
+        addInit();
         
         SymbolTable symbolTable = SymbolTable.root;
         for (SymbolTableItem item : symbolTable.items.values()) {
@@ -195,11 +208,132 @@ public class CodeGeneration extends Visitor<Void> {
         return mappingName;
     }
 
-    private void addInit() {
+    private void addAct() {
+        addCommand("act", false);
+        addCommand("", false);
     }
 
     private void addProc() {
-        
+        addCommand("proc", false);
+        initTab = "\t";
+        addHarness();
+        addContracts();
+        addOtherParts();
+        initTab = "";
+        addCommand("", false);
+    }
+
+    private void addHarness() {
+        addCommand("harness(destructCounter:Int) =", false);
+        addCommand("", false);
+    }
+
+    private void addContracts() {
+        for (ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem : this.contractDefinitions) {
+            buildContractScope(contractDefinitionSymbolTableItem);
+            addContractFunctions(contractDefinitionSymbolTableItem);
+        }
+    }
+
+    private void buildContractScope(ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem) {
+        // Placeholder variable names
+        String userBalancesMapping = "userBalances";
+        StringBuilder declareLine = new StringBuilder(contractDefinitionSymbolTableItem.getContractName() + "(");
+
+        // Iterate through the contract's state variables
+        for (SymbolTableItem symbolTableItem : contractDefinitionSymbolTableItem.getContractSymbolTable().items.values()) {
+            if (symbolTableItem instanceof StateVariableSymbolTableItem stateVariableSymbolTableItem) {
+                Type type = stateVariableSymbolTableItem.getType();
+
+                String varName = stateVariableSymbolTableItem.getVariableName();
+
+                // Handle mapping type (like userBalances)
+                if (type instanceof Mapping mapping) {
+                    declareLine.append(varName).append(":" + this.mappings.get(new Pair<Type, Type>(mapping.getMappingKey(), mapping.getMappingValue())) + ",");
+                }
+                // Handle AddressType (like highestBidder)
+                else if (type instanceof AddressType) {
+                    declareLine.append(varName).append(":Address,");
+                }
+                // Handle UintType (like highestBid)
+                else if (type instanceof UintType) {
+                    declareLine.append(varName).append(":Int,");
+                }
+                // Handle BoolType
+                else if (type instanceof BoolType) {
+                    declareLine.append(varName).append(":Bool,");
+                }
+            }
+        }
+
+        // Close the contract declaration
+        declareLine.append("balance").append(":Int) =");
+        addCommand(declareLine.toString(), false);
+        addCommand("", false);
+
+
+//        // Sum logic for addToBalance
+//        addCommand("sum value:Int.sum addr:Address.get_addToBalance(value,addr).addToBalance(" + userBalancesMapping + "," + daoBalance + ",value,addr) +", true);
+//
+//        // Sum logic for withdrawBalance
+//        addCommand("sum amount:Int.sum addr:Address.get_withdrawBalance(amount,addr).withdrawBalance(" + userBalancesMapping + "," + daoBalance + ",amount,addr) +", true);
+//
+//        // Sum logic for updateDAO
+//        addCommand("sum value:Int.sum addr:Address.get_updateDAO(value,addr).DAO(update(addr,(retValue(addr," + userBalancesMapping + ")) - value," + userBalancesMapping + ")," + daoBalance + ") +", true);
+//
+//        // Sum logic for selfdestruct
+//        addCommand("sum value:Int.sum addr:Address.get_selfdestruct(value,addr).DAO(" + userBalancesMapping + "," + daoBalance + " + value);", true);
+    }
+
+    private void addContractFunctions(ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem) {
+        for (DependencyNode dependencyNode : initNodes) {
+            SymbolTableItem symbolTableItem = dependencyNode.getItemKey();
+            if (!contractDefinitionSymbolTableItem.getContractSymbolTable().items.containsValue(symbolTableItem)) {
+                continue;
+            }
+
+            if (symbolTableItem instanceof FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem) {
+                String functionName = functionDefinitionSymbolTableItem.getFunctionName();
+                ParameterList parameters = functionDefinitionSymbolTableItem.getFunctionDefinitionPointer().getParameterList();
+                ParameterList returnParameters = functionDefinitionSymbolTableItem.getReturnParameterList();
+
+                StringBuilder functionSignature = new StringBuilder();
+                functionSignature.append(functionName).append("(");
+
+                if (parameters != null) {
+                    for (Parameter param : parameters.getParameters()) {
+                        String paramName = param.getIdentifier().getName();
+                        String paramType = CGUtils.typeBuilder(param.getType()); // Use CGUtils to resolve the type
+                        functionSignature.append(paramName).append(":").append(paramType).append(",");
+                    }
+
+                    // Remove the last comma
+                    if (functionSignature.charAt(functionSignature.length() - 1) == ',') {
+                        functionSignature.setLength(functionSignature.length() - 1);
+                    }
+                }
+
+                for (String builtInVar : functionDefinitionSymbolTableItem.getBuiltInusedVars())
+                    functionSignature.append(builtInVar).append(":").append(CGUtils.getBuiltInVarType(builtInVar)).append(",");
+
+                functionSignature.append("balance").append(":Int");
+                functionSignature.append(")");
+
+                // Generate the command for each function
+                addCommand(functionSignature.toString() + " =", false);
+                addCommand("", false);
+
+            }
+        }
+    }
+
+
+    private void addOtherParts() {
+
+    }
+
+    private void addInit() {
+        addCommand("init", false);
     }
 
     private void prepareOutputFolder() {
@@ -229,6 +363,7 @@ public class CodeGeneration extends Visitor<Void> {
 
     private void addCommand(String command, Boolean hasTab) {
         try {
+            this.currentFile.write(initTab);
             if (hasTab) {
                 this.currentFile.write("\t");
             }

@@ -399,9 +399,14 @@ public class TypeEvaluator extends Visitor<Type> {
 
         // for built-in variables
         if (accessExpression.getMaster() instanceof Identifier && ((Identifier) accessExpression.getMaster()).getName().equals("msg")) {
-            if (accessExpression.getMember().getName().equals("sender")) return new AddressType();
-            else if (accessExpression.getMember().getName().equals("value")) return new UintType("");
+            if (accessExpression.getMember().getName().equals("sender")) {
+                return new AddressType();
+            }
+            else if (accessExpression.getMember().getName().equals("value")) {
+                return new UintType("");
+            }
         }
+
         if (accessExpression.getMember().getName().equals("balance") &&
             accessExpression.getMaster() instanceof FunctionCallExpression &&
             FunctionDefinition.extractName(((FunctionCallExpression) accessExpression.getMaster()).getFunctionName()).equals("address") &&

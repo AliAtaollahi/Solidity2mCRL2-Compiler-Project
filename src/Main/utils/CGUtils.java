@@ -9,6 +9,14 @@ import main.ast.nodes.expression.type.primitive.*;
 import java.util.Random;
 
 public class CGUtils {
+    public static String getBuiltInVarType(String var) {
+        if (var.equals("addr"))
+            return "Address";
+        else if (var.equals("value"))
+            return "Int";
+        else
+            return "";
+    }
     private static Random random = new Random();
     public static String generateRandomString() {
         StringBuilder sb = new StringBuilder(3);
@@ -60,5 +68,15 @@ public class CGUtils {
         else if (type instanceof ByteUpperCaseType || type instanceof ByteLowerCaseType)
             return "Nat";
         return "";
+    }
+
+    public static boolean isBuiltIn (String functionName) {
+        if (functionName.equals("payable")
+                || functionName.equals("delegatecall")
+                || functionName.equals("send")
+                || functionName.equals("require")
+                || functionName.equals("transfer"))
+            return true;
+        return false;
     }
 }

@@ -4,6 +4,8 @@ pragma solidity ^0.8.13;
 contract DAO {
     mapping (address => uint) public userBalances1;
     mapping (address => uint) public userBalances2;
+    address highestBidder = 0x0000000000000000000000000000000000000000;
+    uint256 highestBid = 0;
 
     // A struct definition for Deposit
     struct Deposit {

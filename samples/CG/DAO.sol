@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 contract DAO {
     mapping (address => uint) public userBalances;
-//    mapping (address => string) public userBalances2;
+    mapping (address => uint) public userBalances2;
 
 
     function addToBalance() public payable {
@@ -11,14 +11,14 @@ contract DAO {
     }
 
     function getUserBalance(address user) public view returns(uint) {
-        return userBalances[user];
+        return userBalances2[user];
     }
 
-    function withdrawBalance(uint amount) public {
-        if(userBalances[msg.sender] >= amount){
-            (bool temp,) = msg.sender.call{value : (amount / (10**18))}("");
+    function withdrawBalance() public {
+        if(userBalances[msg.sender] >= 10){
+            (bool temp,) = msg.sender.call{value : (10 / (10**18))}("");
             require(temp, 'error');
-            userBalances[msg.sender] -= amount;
+            userBalances[msg.sender] -= 10;
         }
     }
 }

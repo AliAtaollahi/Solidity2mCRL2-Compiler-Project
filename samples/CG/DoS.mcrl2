@@ -86,9 +86,12 @@ proc
 		<> delta;
 	
 	Auction(highestBidder:Address,highestBid:Int,balance:Int) =
-		sum value:Int.sum addr:Address.get_bid(value,addr).bid(highestBidder,highestBid,balance,value,addr) +
-		sum value:Int.sum addr:Address.get_updateAuction(value,addr).Auction(addr,value,balance) +
-		sum value:Int.sum addr:Address.get_selfdestruct(value,addr).Auction(highestBidder,highestBid,balance+value);		
+		sum value:Int.sum addr:Address.get_bid(value,addr).
+		    bid(highestBidder,highestBid,balance,value,addr) +
+		sum value:Int.sum addr:Address.get_updateAuction(value,addr).
+		    Auction(addr,value,balance) +
+		sum value:Int.sum addr:Address.get_selfdestruct(value,addr).
+		    Auction(highestBidder,highestBid,balance+value);
 	
 	bid(highestBidder:Address,highestBid:Int,balance:Int,value:Int,addr:Address) =
 		(value > highestBid) ->

@@ -106,7 +106,18 @@ public class NameAnalyzer extends Visitor<Void> {
 
         // Visit the first operand
         if (binaryExpression.getFirstOperand() != null) {
-            if (binaryExpression.getBinaryOperator().equals(BinaryOperator.ASSIGNMENT)) {
+            if (binaryExpression.getBinaryOperator().equals(BinaryOperator.ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.ADDITION_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.BITWISE_AND_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.BITWISE_OR_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.BITWISE_XOR_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.DIVISION_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.LEFT_SHIFT_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.MODULUS_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.MULTIPLICATION_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.RIGHT_SHIFT_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.SUBTRACTION_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.TERNARY_OPERATOR)) {
                 this.isCurrentPosOfStateVariableLeft = true;
             }
             binaryExpression.getFirstOperand().accept(this);

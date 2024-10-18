@@ -5,6 +5,7 @@ import main.ast.nodes.declaration.utility.Parameter;
 import main.symbolTable.SymbolTable;
 
 import java.sql.Blob;
+import java.util.ArrayList;
 
 import main.ast.nodes.declaration.FunctionDefinition;
 import main.ast.nodes.declaration.utility.ModifierList;
@@ -23,6 +24,15 @@ public class FunctionDefinitionSymbolTableItem extends SymbolTableItem {
     private ContractDefinition contractDefinitionContainer = null;
     private ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem;
     private FunctionDefinition functionDefinitionPointer;
+
+    private ArrayList<String> builtInusedVars = new ArrayList<>();
+    public ArrayList<String> getBuiltInusedVars() {
+        return builtInusedVars;
+    }
+
+    public void addBuiltInusedVars(String builtInusedVar) {
+        this.builtInusedVars.add(builtInusedVar);
+    }
 
     public FunctionDefinitionSymbolTableItem(String functionName, FunctionDefinition functionDefinition, ContractDefinition contractDefinition) {
         this.functionName = functionName;

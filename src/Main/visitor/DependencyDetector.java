@@ -279,6 +279,14 @@ public class DependencyDetector extends Visitor<Void> {
             } else if (this.expressionAnalyzer.findItem("call", functionDefinitionSymbolTableItem.getScope())) {
                 this.initNodes.add(this.currentFunctionDefinitionNode);
             }
+
+            if (this.expressionAnalyzer.findAccessExpression("msg", "sender", functionDefinitionSymbolTableItem.getScope())) {
+                functionDefinitionSymbolTableItem.addBuiltInusedVars("addr");
+            }
+
+            if (this.expressionAnalyzer.findAccessExpression("msg", "value", functionDefinitionSymbolTableItem.getScope())) {
+                functionDefinitionSymbolTableItem.addBuiltInusedVars("value");
+            }
         }
 
         // Rule 6
@@ -289,6 +297,7 @@ public class DependencyDetector extends Visitor<Void> {
                 for (SymbolTableItem symbolTableItem : functionDefinitionSymbolTableItem.getSymbolTable().pre.items.values()) {
                     if (symbolTableItem instanceof FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem1) {
                         if (functionDefinitionSymbolTableItem1.getFunctionDefinitionPointer().getIdentifiers().contains(identifier)) {
+
                             if (identifier.b) {
                                 this.initNodes.add(new DependencyNode(symbolTableItem, this.currentFunctionDefinition.getContractDefinitionContainer()));
                             }
