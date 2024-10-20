@@ -1,33 +1,44 @@
-3. // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
-// NOTE: Deploy this contract first
-contract B {
-    // NOTE: storage layout must be the same as contract A
-    uint256 public num;
-    address public sender;
-    uint256 public value;
+contract ExampleContract {
+    // Define state variables
+    uint[] public myArray;
 
-    function setVars(uint256 _num) public payable {
-        num = _num;
-        sender = msg.sender;
-        value = msg.value;
+    // Event declaration
+    event Transfer(address indexed from, address indexed to, uint amount);
+
+    // Constructor to initialize the contract
+    constructor() {
+    }
+
+    // Function to demonstrate various Solidity features
+    function exampleFunction(int x) public returns (uint returnValue) {
+        int temp = 0;
+        tx.origin;
+        if (x > 10) {
+            temp = 0;
+            returnValue = getValue();
+            uint meow = getValue();
+        } else if (true) {
+            temp = 5;
+            while(true) {
+                uint meow = getValue();
+            }
+        }
+        else {
+            uint meow = getValue();
+        }
+
+    }
+
+    // Dummy function to simulate a value return
+    function getValue() public pure returns (uint) {
+        return 42;
+    }
+
+    // Another dummy function to simulate function call
+    function anotherFunction(uint a, uint b, uint c) public pure returns (uint) {
+        return a + b + c;
     }
 }
-
-contract A {
-    uint256 public num;
-    address public sender;
-    uint256 public value;
-
-    function setVars(address _contract, uint256 _num) public payable {
-// A's storage is set, B is not modified.
-        (bool success, bytes memory data) = _contract.delegatecall(
-            abi.encodeWithSignature("setVars(uint256)", _num)
-        );
-    }
-}
-// We need the setVars function in contract A (Imagine that we have considered contract A)
-
-
-

@@ -9,7 +9,9 @@ import main.ast.nodes.expression.primary.Type;
 import main.ast.nodes.expression.type.Mapping;
 import main.ast.nodes.expression.type.primitive.AddressType;
 import main.ast.nodes.expression.type.primitive.BoolType;
+import main.ast.nodes.expression.type.primitive.ListType;
 import main.ast.nodes.expression.type.primitive.UintType;
+import main.ast.nodes.statement.*;
 import main.symbolTable.SymbolTable;
 import main.symbolTable.exceptions.ItemNotFoundException;
 import main.symbolTable.items.*;
@@ -23,6 +25,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class CodeGeneration extends Visitor<Void> {
+    private Block initialStatement = new Block();
     private String initTab = "";
     private Map<String, String> variableNameMap = new HashMap<>();
     private Map<Pair<Type, Type>, String> mappings = new HashMap<>();
@@ -32,6 +35,12 @@ public class CodeGeneration extends Visitor<Void> {
     private Set<DependencyNode> initNodes;
     private List<ContractDefinitionSymbolTableItem> contractDefinitions = new ArrayList<>();
     private boolean isNewMappingAdded = false;
+    private Set<StateVariableSymbolTableItem> stateVariableSymbolTableItems = new HashSet<>();
+    private Stack<Statement> statementsStack = new Stack<>();
+    private Map<Statement, String> labels = new HashMap<>();
+    private Map<Statement, String> labelsOuter = new HashMap<>();
+    private Map<Statement, String> labelsInner = new HashMap<>();
+
 
     public CodeGeneration(Set<DependencyNode> initNodes, String outputFileName) {
         this.outputFileName = outputFileName;
@@ -48,13 +57,25 @@ public class CodeGeneration extends Visitor<Void> {
         }
         this.initNodes = clearInitNodes;
 
+        this.stateVariableSymbolTableItems = new HashSet<>();
+        for (DependencyNode dependencyNode : this.initNodes) {
+            if (dependencyNode.getItemKey() instanceof FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem) {
+                stateVariableSymbolTableItems.addAll(functionDefinitionSymbolTableItem.getStateVariableSymbolTableItems());
+            }
+        }
+
         for (DependencyNode dependencyNode : initNodes) {
             if (dependencyNode.getItemKey() instanceof FunctionDefinitionSymbolTableItem) {
                 if(!this.contractDefinitions.contains(((FunctionDefinitionSymbolTableItem) dependencyNode.getItemKey()).getContractDefinitionSymbolTableItem())) {
+                    if(((FunctionDefinitionSymbolTableItem) dependencyNode.getItemKey()).getContractDefinitionContainer().getName().getName().equals("abi"))
+                        continue;
+
                     this.contractDefinitions.add(((FunctionDefinitionSymbolTableItem) dependencyNode.getItemKey()).getContractDefinitionSymbolTableItem());
                 }
             }
         }
+
+//        this.statementsStack.push(this.initialStatement);
     }
 
     @Override
@@ -147,47 +168,45 @@ public class CodeGeneration extends Visitor<Void> {
     }
 
     private void addMapings() {
-        for (DependencyNode dependencyNode : this.initNodes) {
-            if (dependencyNode.getItemKey() instanceof StateVariableSymbolTableItem) {
-                Type type = ((StateVariableSymbolTableItem) dependencyNode.getItemKey()).getType();
-                if (type instanceof Mapping mapping) {
-                    Type keyType = mapping.getMappingKey();
-                    Type valueType = mapping.getMappingValue();
-                    String mappingName = getMappingName(keyType, valueType);
+        for (StateVariableSymbolTableItem stateVariableSymbolTableItem : this.stateVariableSymbolTableItems) {
+            Type type = stateVariableSymbolTableItem.getType();
+            if (type instanceof Mapping mapping) {
+                Type keyType = mapping.getMappingKey();
+                Type valueType = mapping.getMappingValue();
+                String mappingName = getMappingName(keyType, valueType);
 
-                    if (!this.isNewMappingAdded)
-                        return;
+                if (!this.isNewMappingAdded)
+                    return;
 
-                    String empty = "empty" + CGUtils.capitalizeFirstLetter(mappingName),
-                            add = "add" + CGUtils.capitalizeFirstLetter(mappingName),
-                            retValue = "retValue" + CGUtils.capitalizeFirstLetter(mappingName),
-                            search = "search" + CGUtils.capitalizeFirstLetter(mappingName),
-                            update = "update" + CGUtils.capitalizeFirstLetter(mappingName);
+                String empty = "empty" + CGUtils.capitalizeFirstLetter(mappingName),
+                        add = "add" + CGUtils.capitalizeFirstLetter(mappingName),
+                        retValue = "retValue" + CGUtils.capitalizeFirstLetter(mappingName),
+                        search = "search" + CGUtils.capitalizeFirstLetter(mappingName),
+                        update = "update" + CGUtils.capitalizeFirstLetter(mappingName);
 
-                    addCommand("sort " + mappingName + ";", false);
-                    addCommand("cons " + empty + " : " + mappingName + ";", false);
-                    addCommand(add + " : " + CGUtils.typeBuilder(keyType) + "#" + CGUtils.typeBuilder(valueType) + "#" + mappingName + " -> " + mappingName + ";", true);
+                addCommand("sort " + mappingName + ";", false);
+                addCommand("cons " + empty + " : " + mappingName + ";", false);
+                addCommand(add + " : " + CGUtils.typeBuilder(keyType) + "#" + CGUtils.typeBuilder(valueType) + "#" + mappingName + " -> " + mappingName + ";", true);
 
-                    addCommand("map", false);
-                    addCommand(retValue + " : " + CGUtils.typeBuilder(keyType) + "#" + mappingName + " -> " + CGUtils.typeBuilder(valueType) + ";", true);
-                    addCommand(search + " : " + CGUtils.typeBuilder(keyType) + "#" + mappingName + " -> Bool;", true);
-                    addCommand(update + " : " + CGUtils.typeBuilder(keyType) + "#" + CGUtils.typeBuilder(valueType) + "#" + mappingName + " -> " + mappingName + ";", true);
+                addCommand("map", false);
+                addCommand(retValue + " : " + CGUtils.typeBuilder(keyType) + "#" + mappingName + " -> " + CGUtils.typeBuilder(valueType) + ";", true);
+                addCommand(search + " : " + CGUtils.typeBuilder(keyType) + "#" + mappingName + " -> Bool;", true);
+                addCommand(update + " : " + CGUtils.typeBuilder(keyType) + "#" + CGUtils.typeBuilder(valueType) + "#" + mappingName + " -> " + mappingName + ";", true);
 
-                    addCommand("var", false);
-                    addCommand("array : " + mappingName + ";", true);
-                    addCommand("b,d : " + CGUtils.typeBuilder(valueType) + ";", true);
-                    addCommand("a,c : " + CGUtils.typeBuilder(keyType) + ";", true);
+                addCommand("var", false);
+                addCommand("array : " + mappingName + ";", true);
+                addCommand("b,d : " + CGUtils.typeBuilder(valueType) + ";", true);
+                addCommand("a,c : " + CGUtils.typeBuilder(keyType) + ";", true);
 
-                    addCommand("eqn", false);
-                    addCommand(retValue + "(a," + empty + ") = -1;", true);
-                    addCommand(retValue + "(a," + add + "(c,b,array)) = if(a == c,b," + retValue + "(a,array));", true);
-                    addCommand(search + "(a," + empty + ") = false;", true);
-                    addCommand(search + "(a," + add + "(c,b,array)) = if(a == c,true," + search + "(a,array));", true);
-                    addCommand(update + "(a,b," + empty + ") = " + empty + ";", true);
-                    addCommand(update + "(a,b," + add + "(c,d,array)) = if(a == c," + add + "(a,b,array)," + add + "(c,d," + update + "(a,b,array)));", true);
+                addCommand("eqn", false);
+                addCommand(retValue + "(a," + empty + ") = -1;", true);
+                addCommand(retValue + "(a," + add + "(c,b,array)) = if(a == c,b," + retValue + "(a,array));", true);
+                addCommand(search + "(a," + empty + ") = false;", true);
+                addCommand(search + "(a," + add + "(c,b,array)) = if(a == c,true," + search + "(a,array));", true);
+                addCommand(update + "(a,b," + empty + ") = " + empty + ";", true);
+                addCommand(update + "(a,b," + add + "(c,d,array)) = if(a == c," + add + "(a,b,array)," + add + "(c,d," + update + "(a,b,array)));", true);
 
-                    addCommand(this.endOfEachPart, false);
-                }
+                addCommand(this.endOfEachPart, false);
             }
         }
     }
@@ -241,48 +260,102 @@ public class CodeGeneration extends Visitor<Void> {
         StringBuilder declareLine = new StringBuilder(contractDefinitionSymbolTableItem.getContractName() + "(");
 
         // Iterate through the contract's state variables
-        for (SymbolTableItem symbolTableItem : contractDefinitionSymbolTableItem.getContractSymbolTable().items.values()) {
-            if (symbolTableItem instanceof StateVariableSymbolTableItem stateVariableSymbolTableItem) {
-                Type type = stateVariableSymbolTableItem.getType();
+        for (StateVariableSymbolTableItem stateVariableSymbolTableItem : this.stateVariableSymbolTableItems) {
+            Type type = stateVariableSymbolTableItem.getType();
 
-                String varName = stateVariableSymbolTableItem.getVariableName();
+            String varName = stateVariableSymbolTableItem.getVariableName();
 
-                // Handle mapping type (like userBalances)
-                if (type instanceof Mapping mapping) {
-                    declareLine.append(varName).append(":" + this.mappings.get(new Pair<Type, Type>(mapping.getMappingKey(), mapping.getMappingValue())) + ",");
-                }
-                // Handle AddressType (like highestBidder)
-                else if (type instanceof AddressType) {
-                    declareLine.append(varName).append(":Address,");
-                }
-                // Handle UintType (like highestBid)
-                else if (type instanceof UintType) {
-                    declareLine.append(varName).append(":Int,");
-                }
-                // Handle BoolType
-                else if (type instanceof BoolType) {
-                    declareLine.append(varName).append(":Bool,");
-                }
+            if (type instanceof Mapping mapping) {
+                declareLine.append(varName).append(":" + getMappingName(mapping.getMappingKey(), mapping.getMappingValue()) + ",");
             }
+            else if (type instanceof AddressType) {
+                declareLine.append(varName).append(":Address,");
+            }
+            else if (type instanceof UintType) {
+                declareLine.append(varName).append(":Int,");
+            }
+            else if (type instanceof BoolType) {
+                declareLine.append(varName).append(":Bool,");
+            }
+            else if (type instanceof ListType) {
+                System.out.println("");
+
+            }
+            else {
+                System.out.println("");
+            }
+
         }
 
         // Close the contract declaration
         declareLine.append("balance").append(":Int) =");
         addCommand(declareLine.toString(), false);
+
+//        addCommand("sum value:Int.sum addr:Address.get_addToBalance(value,addr).addToBalance(" + userBalancesMapping + ",balance,value,addr) +", true);
+        for (DependencyNode dependencyNode : initNodes) {
+            SymbolTableItem symbolTableItem = dependencyNode.getItemKey();
+            if (!contractDefinitionSymbolTableItem.getContractSymbolTable().items.containsValue(symbolTableItem)) {
+                continue;
+            }
+
+            if (symbolTableItem instanceof FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem) {
+                String functionName = functionDefinitionSymbolTableItem.getFunctionName();
+                ParameterList parameters = functionDefinitionSymbolTableItem.getFunctionDefinitionPointer().getParameterList();
+
+                StringBuilder functionSignature = new StringBuilder();
+
+                if (parameters != null) {
+                    for (Parameter param : parameters.getParameters()) {
+                        String paramName = param.getIdentifier().getName();
+                        String paramType = CGUtils.typeBuilder(param.getType());
+                        functionSignature.append("sum ").append(paramName).append(":").append(paramType).append(".");
+                    }
+                }
+                for (String builtInVar : functionDefinitionSymbolTableItem.getBuiltInusedVars()) {
+                    functionSignature.append("sum ").append(builtInVar).append(":").append(CGUtils.getBuiltInVarType(builtInVar)).append(".");
+                }
+
+                functionSignature.append("get_").append(functionName).append("(");
+                if (parameters != null) {
+                    for (Parameter param : parameters.getParameters()) {
+                        String paramName = param.getIdentifier().getName();
+                        functionSignature.append(paramName).append(",");
+                    }
+                }
+                for (String builtInVar : functionDefinitionSymbolTableItem.getBuiltInusedVars()) {
+                    functionSignature.append(builtInVar).append(",");
+                }
+                if (functionSignature.charAt(functionSignature.length() - 1) == ',') {
+                    functionSignature.deleteCharAt(functionSignature.length() - 1);
+                }
+                functionSignature.append(").");
+
+                functionSignature.append(functionName).append("(");
+                if (parameters != null) {
+                    for (Parameter param : parameters.getParameters()) {
+                        String paramName = param.getIdentifier().getName();
+                        functionSignature.append(paramName).append(",");
+                    }
+
+                }
+                for (StateVariableSymbolTableItem stateVariableSymbolTableItem : functionDefinitionSymbolTableItem.getStateVariableSymbolTableItems()) {
+                    String paramName = stateVariableSymbolTableItem.getVariableName();
+                    functionSignature.append(paramName).append(",");
+                }
+                for (String builtInVar : functionDefinitionSymbolTableItem.getBuiltInusedVars()) {
+                    functionSignature.append(builtInVar).append(",");
+                }
+                functionSignature.append("balance");
+                functionSignature.append(")");
+
+                // Generate the command for each function
+                addCommand(functionSignature.toString() + " +", true);
+            }
+        }
+
+        addCommand("sum value:Int.sum addr:Address.get_update" + contractDefinitionSymbolTableItem.getContractName() + "(value,addr)." + contractDefinitionSymbolTableItem.getContractName() + "(update(addr,(retValue(addr," + userBalancesMapping + ")) - value," + userBalancesMapping + "),balance) +", true);
+        addCommand("sum value:Int.sum addr:Address.get_selfdestruct(value,addr)." + contractDefinitionSymbolTableItem.getContractName() + "(" + userBalancesMapping + ",balance + value);", true);
         addCommand("", false);
-
-
-//        // Sum logic for addToBalance
-//        addCommand("sum value:Int.sum addr:Address.get_addToBalance(value,addr).addToBalance(" + userBalancesMapping + "," + daoBalance + ",value,addr) +", true);
-//
-//        // Sum logic for withdrawBalance
-//        addCommand("sum amount:Int.sum addr:Address.get_withdrawBalance(amount,addr).withdrawBalance(" + userBalancesMapping + "," + daoBalance + ",amount,addr) +", true);
-//
-//        // Sum logic for updateDAO
-//        addCommand("sum value:Int.sum addr:Address.get_updateDAO(value,addr).DAO(update(addr,(retValue(addr," + userBalancesMapping + ")) - value," + userBalancesMapping + ")," + daoBalance + ") +", true);
-//
-//        // Sum logic for selfdestruct
-//        addCommand("sum value:Int.sum addr:Address.get_selfdestruct(value,addr).DAO(" + userBalancesMapping + "," + daoBalance + " + value);", true);
     }
 
     private void addContractFunctions(ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem) {
@@ -307,22 +380,55 @@ public class CodeGeneration extends Visitor<Void> {
                         functionSignature.append(paramName).append(":").append(paramType).append(",");
                     }
 
-                    // Remove the last comma
-                    if (functionSignature.charAt(functionSignature.length() - 1) == ',') {
-                        functionSignature.setLength(functionSignature.length() - 1);
-                    }
                 }
 
-                for (String builtInVar : functionDefinitionSymbolTableItem.getBuiltInusedVars())
+                for (StateVariableSymbolTableItem stateVariableSymbolTableItem : functionDefinitionSymbolTableItem.getStateVariableSymbolTableItems()) {
+                    String paramName = stateVariableSymbolTableItem.getVariableName();
+                    String paramType;
+                    if (stateVariableSymbolTableItem.getType() instanceof Mapping mapping) {
+                        paramType = getMappingName(mapping.getMappingKey(), mapping.getMappingValue());
+                    } else {
+                        paramType = CGUtils.typeBuilder(stateVariableSymbolTableItem.getType());
+                    }
+                    functionSignature.append(paramName).append(":").append(paramType).append(",");
+                }
+
+                for (String builtInVar : functionDefinitionSymbolTableItem.getBuiltInusedVars()) {
                     functionSignature.append(builtInVar).append(":").append(CGUtils.getBuiltInVarType(builtInVar)).append(",");
+                }
 
                 functionSignature.append("balance").append(":Int");
                 functionSignature.append(")");
 
                 // Generate the command for each function
                 addCommand(functionSignature.toString() + " =", false);
+
+                for (Statement statement : functionDefinitionSymbolTableItem.getScope().getStatements()) {
+                    statement.accept(this);
+                    // meow
+                }
+
+                List<Statement> statementsWithInner = new ArrayList<>();
+                for (Statement statement : functionDefinitionSymbolTableItem.getScope().getStatements()) {
+                    if (this.labelsInner.get(statement) != null) {
+                        statementsWithInner.add(statement);
+                    }
+                }
+                for (Statement statement1 : statementsWithInner) {
+                    String context = this.labelsInner.get(statement1);
+                    if (context.endsWith("\n")) context = context.substring(0, context.length() - 1);
+                    if (statementsWithInner.getLast() != statement1) {
+                        context += " +";
+                    }
+                    addCommand(context, false);
+                }
                 addCommand("", false);
 
+                for (Statement statement : functionDefinitionSymbolTableItem.getScope().getStatements()) {
+                    if (this.labelsOuter.get(statement) != null)
+                        addCommand(this.labelsOuter.get(statement), false);
+                }
+                addCommand("", false);
             }
         }
     }
@@ -372,6 +478,15 @@ public class CodeGeneration extends Visitor<Void> {
         } catch (IOException e) {//unreachable
 
         }
+    }
+
+    private String addContextCommand(String command, String context, Boolean hasTab) {
+        context += initTab;
+        if (hasTab) {
+            context += "\t";
+        }
+        context += (command + "\n");
+        return context;
     }
 
     @Override
@@ -478,6 +593,202 @@ public class CodeGeneration extends Visitor<Void> {
             return Integer.MAX_VALUE;
         }
     }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    @Override
+    public Void visit(Block block) {
+        for (Statement statement : block.getStatements()) {
+            if (statement != null) {
+                statement.accept(this);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Void visit(IfStatement ifStatement) {
+        statementsStack.push(ifStatement);
+        // meow
+        // Visit the condition of the IfStatement
+        if (ifStatement.getCondition() != null) {
+            ifStatement.getCondition().accept(this);
+        }
+
+        // Visit the trueResult of the IfStatement
+        if (ifStatement.getTrueResult() != null) {
+            ifStatement.getTrueResult().accept(this);
+        }
+
+        // Visit the falseResult of the IfStatement if it exists
+        if (ifStatement.getFalseResult() != null) {
+            ifStatement.getFalseResult().accept(this);
+        }
+
+        while (!this.statementsStack.peek().equals(ifStatement)) {
+            this.statementsStack.pop();
+        }
+        this.statementsStack.pop();
+        return null;
+    }
+
+    @Override
+    public Void visit(WhileStatement whileStatement) {
+        statementsStack.push(whileStatement);
+
+        labels.put(whileStatement, "whileScope" + labels.size());
+        String innerContext = "";
+        innerContext = addContextCommand("(" + labels.get(whileStatement) + "())", innerContext, false);
+        this.labelsInner.put(whileStatement, innerContext);
+
+        // Visit the condition of the WhileStatement
+        if (whileStatement.getCondition() != null) {
+            whileStatement.getCondition().accept(this);
+        }
+
+        // Visit the scope (Statement) of the WhileStatement
+        if (whileStatement.getScope() != null) {
+            whileStatement.getScope().accept(this);
+        }
+
+        while (!this.statementsStack.peek().equals(whileStatement)) {
+            this.statementsStack.pop();
+        }
+        this.statementsStack.pop();
+        return null;
+    }
+
+    @Override
+    public Void visit(ForStatement forStatement) {
+        statementsStack.push(forStatement);
+
+        labels.put(forStatement, "forScope" + labels.size());
+        String innerContext = "";
+        innerContext = addContextCommand("(" + labels.get(forStatement) + "())", innerContext, false);
+        this.labelsInner.put(forStatement, innerContext);
+
+        // Visit the initial statement of the ForStatement
+        if (forStatement.getInitial() != null) {
+            forStatement.getInitial().accept(this);
+        }
+
+        // Visit the condition (ExpressionStatement) of the ForStatement
+        if (forStatement.getCondition() != null) {
+            forStatement.getCondition().accept(this);
+        }
+
+        // Visit the iteration (Expression) of the ForStatement
+        if (forStatement.getIteration() != null) {
+            forStatement.getIteration().accept(this);
+        }
+
+        // Visit the scope (Statement) of the ForStatement
+        if (forStatement.getScope() != null) {
+            forStatement.getScope().accept(this);
+        }
+
+        while (!this.statementsStack.peek().equals(forStatement)) {
+            this.statementsStack.pop();
+        }
+        this.statementsStack.pop();
+        return null;
+    }
+
+    @Override
+    public Void visit(RevertStatement revertStatement) {
+
+        // Visit the functionCall (FunctionCall) inside the RevertStatement
+        if (revertStatement.getFunctionCall() != null) {
+            revertStatement.getFunctionCall().accept(this);
+        }
+
+        return null;
+    }
+
+
+    @Override
+    public Void visit(VariableDeclarationStatement variableDeclarationStatement) {
+
+        // Visit the variableList (VariableList) in the VariableDeclarationStatement
+        if (variableDeclarationStatement.getVariableList() != null) {
+            variableDeclarationStatement.getVariableList().accept(this);
+        }
+
+        // Visit the initiateValue (Expression) in the VariableDeclarationStatement
+        if (variableDeclarationStatement.getInitiateValue() != null) {
+            variableDeclarationStatement.getInitiateValue().accept(this);
+        }
+
+        return null;
+    }
+
+    @Override
+    public Void visit(ExpressionStatement expressionStatement) {
+
+        // Visit the expression (Expression) inside the ExpressionStatement
+        if (expressionStatement.getExpression() != null) {
+            expressionStatement.getExpression().accept(this);
+        }
+
+        return null;
+    }
+
+    @Override
+    public Void visit(BreakStatement breakStatement) {
+
+        return null;
+    }
+
+    @Override
+    public Void visit(ContinueStatement continueStatement) {
+
+        return null;
+    }
+
+    @Override
+    public Void visit(ThrowStatement throwStatement) {
+
+        return null;
+    }
+
+    @Override
+    public Void visit(ReturnStatement returnStatement) {
+
+        // Visit the value (Expression) inside the ReturnStatement
+        if (returnStatement.getValue() != null) {
+            returnStatement.getValue().accept(this);
+        }
+
+        return null;
+    }
+
+    @Override
+    public Void visit(DoWhileStatement doWhileStatement) {
+        statementsStack.push(doWhileStatement);
+
+        labels.put(doWhileStatement, "doWhileScope" + labels.size());
+        String innerContext = "";
+        innerContext = addContextCommand("(" + labels.get(doWhileStatement) + "())", innerContext, false);
+        this.labelsInner.put(doWhileStatement, innerContext);
+
+        // Visit the scope (Statement) inside the DoWhileStatement
+        if (doWhileStatement.getScope() != null) {
+            doWhileStatement.getScope().accept(this);
+        }
+
+        // Visit the condition (Expression) inside the DoWhileStatement
+        if (doWhileStatement.getCondition() != null) {
+            doWhileStatement.getCondition().accept(this);
+        }
+
+        while (!this.statementsStack.peek().equals(doWhileStatement)) {
+            this.statementsStack.pop();
+        }
+        this.statementsStack.pop();
+        return null;
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
     private String endOfEachPart = "%-------------------------------------------------";
     private String header = """

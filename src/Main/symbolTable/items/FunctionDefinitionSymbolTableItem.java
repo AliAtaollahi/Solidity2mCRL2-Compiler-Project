@@ -6,6 +6,8 @@ import main.symbolTable.SymbolTable;
 
 import java.sql.Blob;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 import main.ast.nodes.declaration.FunctionDefinition;
 import main.ast.nodes.declaration.utility.ModifierList;
@@ -24,6 +26,17 @@ public class FunctionDefinitionSymbolTableItem extends SymbolTableItem {
     private ContractDefinition contractDefinitionContainer = null;
     private ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem;
     private FunctionDefinition functionDefinitionPointer;
+
+    private Set<StateVariableSymbolTableItem> stateVariableSymbolTableItems = new HashSet<>();
+
+    public Set<StateVariableSymbolTableItem> getStateVariableSymbolTableItems() {
+        return stateVariableSymbolTableItems;
+    }
+
+    public void addStateVariableSymbolTableItems(StateVariableSymbolTableItem stateVariableSymbolTableItem) {
+        this.stateVariableSymbolTableItems.add(stateVariableSymbolTableItem);
+    }
+
 
     private ArrayList<String> builtInusedVars = new ArrayList<>();
     public ArrayList<String> getBuiltInusedVars() {

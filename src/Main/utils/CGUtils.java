@@ -63,6 +63,8 @@ public class CGUtils {
             return "Address";
         else if (type instanceof BoolType)
             return "Bool";
+        else if (type instanceof IntType)
+            return "Int";
         else if (type instanceof UserDefinedTypeName userDefinedTypeName)
             return userDefinedTypeName.getTypeChain().get(0).getName();
         else if (type instanceof ByteUpperCaseType || type instanceof ByteLowerCaseType)
@@ -75,7 +77,8 @@ public class CGUtils {
                 || functionName.equals("delegatecall")
                 || functionName.equals("send")
                 || functionName.equals("require")
-                || functionName.equals("transfer"))
+                || functionName.equals("transfer")
+                || functionName.equals("revert"))
             return true;
         return false;
     }

@@ -1,0 +1,52 @@
+act
+
+proc
+	harness = 
+		sum value:Int.(value < 10 && value > 10) -> 
+			(call_exampleFunction(value).(get_succIf + get_succWhile + get_succFor + get_succDoWhile + get_succContinue + get_succBreak)).harness
+		<> delta;
+
+	ExampleContract() =
+		exampleFunction(0,0,10,ahmad2) +
+	
+	exampleFunction(temp:Int,sum:Int,ahmad:Int) = 
+		sum x:Int.get_exampleFunction(x).
+		(((x > 10) ->
+			(call_succIf.exampleFunction(0,sum))
+		<> (call_succIf.exampleFunction(5,sum))) +
+		(whileScope(x)) +
+		(ForScope(0, sum)) +
+		(DoWhileScope(x)) +
+		(ContinueScope(0,sum)) +
+		(BreakScope(0,sum))
+		);
+		
+	whileScope(x:Int) = 
+		(x < 100) ->
+			(firstAct.whileScope(x + 10))
+		<> (call_succWhile.exampleFunction(0,0));
+	
+	ForScope(i:Int,sum:Int) =
+		(i < 10) ->
+			(firstAct.ForScope(i + 1, sum + i))
+		<> (call_succFor.exampleFunction(0,sum));
+	
+	DoWhileScope(x:Int) =
+		((x + 1) < 10) ->
+			(firstAct.DoWhileScope(x + 1))
+		<> (call_succDoWhile.exampleFunction(0,0));
+		
+	ContinueScope(i:Int,sum:Int) =
+		(i < 10) ->
+			(((i mod 2) == 0) ->
+				(firstAct.ContinueScope(i + 1,sum))
+			<> (firstAct.ContinueScope(i + 1,sum + i)))
+		<> (call_succContinue.exampleFunction(0,sum));
+	
+	BreakScope(i:Int,sum:Int) =
+		(i < 10) ->
+			((i == 5) ->
+				(call_succBreak.exampleFunction(0,sum))
+			<> (firstAct.BreakScope(i + 1,sum + i)))
+		<> (call_succBreak.exampleFunction(0,sum));
+init

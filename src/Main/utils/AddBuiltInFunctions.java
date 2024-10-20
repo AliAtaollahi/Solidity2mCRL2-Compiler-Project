@@ -16,7 +16,8 @@ public class AddBuiltInFunctions {
                     " function payable_builtIn(address targetAddress) public pure returns (address payable) { }" +
                     " function require_builtIn(bool condition) public pure { }" +
                     " function delegatecall_builtIn(address target, bytes memory functionAddress) public returns (bool, bytes memory) { }" +
-                    " function send_builtIn(address payable recipient, uint256 amount) public returns (bool) { }";
+                    " function send_builtIn(address payable recipient, uint256 amount) public returns (bool) { }" +
+                    " function revert_builtIn(string memory errorMessage) public { }";
 
     // Method to add the built-in functions after the line containing 'contract'
     public static String addBuiltInFunctionsToFile(String filePath) throws IOException {

@@ -10,7 +10,7 @@ import main.ast.nodes.expression.*;
 import main.ast.nodes.expression.modifier.Modifier;
 import main.ast.nodes.expression.primary.*;
 import main.ast.nodes.expression.type.UserDefinedTypeName;
-import main.ast.nodes.statement.Statement;
+import main.ast.nodes.statement.*;
 import main.symbolTable.SymbolTable;
 import main.symbolTable.exceptions.ItemNotFoundException;
 import main.symbolTable.items.*;
@@ -69,7 +69,6 @@ public class NewExclusionAnalyzer extends Visitor<Void> {
 
         return null;
     }
-
 
     @Override
     public Void visit(ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem) {

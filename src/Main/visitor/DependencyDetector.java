@@ -293,13 +293,15 @@ public class DependencyDetector extends Visitor<Void> {
         for (Pair<Identifier, Boolean> identifier : functionDefinitionSymbolTableItem.getFunctionDefinitionPointer().getIdentifiers()) {
             try {
                 SymbolTableItem item = functionDefinitionSymbolTableItem.getSymbolTable().getItem(StateVariableSymbolTableItem.START_KEY + identifier.a.getName(), true);
-                this.initNodes.add(new DependencyNode(item, this.currentFunctionDefinition.getContractDefinitionContainer()));
+                functionDefinitionSymbolTableItem.addStateVariableSymbolTableItems((StateVariableSymbolTableItem) item);
+//                this.initNodes.add(new DependencyNode(item, this.currentFunctionDefinition.getContractDefinitionContainer()));
                 for (SymbolTableItem symbolTableItem : functionDefinitionSymbolTableItem.getSymbolTable().pre.items.values()) {
                     if (symbolTableItem instanceof FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem1) {
                         if (functionDefinitionSymbolTableItem1.getFunctionDefinitionPointer().getIdentifiers().contains(identifier)) {
-
                             if (identifier.b) {
-                                this.initNodes.add(new DependencyNode(symbolTableItem, this.currentFunctionDefinition.getContractDefinitionContainer()));
+                                DependencyNode calledFunction = new DependencyNode(functionDefinitionSymbolTableItem1, functionDefinitionSymbolTableItem1.getContractDefinitionContainer());
+                                this.dependencyTree.addDependency(this.currentFunctionDefinitionNode, calledFunction);
+//                                this.initNodes.add(new DependencyNode(symbolTableItem, this.currentFunctionDefinition.getContractDefinitionContainer()));
                             }
                         }
                     }

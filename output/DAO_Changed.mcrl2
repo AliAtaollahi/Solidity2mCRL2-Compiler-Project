@@ -1,0 +1,132 @@
+sort Address;
+cons Normal,Attacker,Owner,null,Contract : Address;
+map
+	equal : Address#Address -> Bool;
+var ad1,ad2: Address;
+eqn
+	equal(Normal,Normal) = true;
+	equal(Normal,Attacker) = false;
+	equal(Normal,Owner) = false;
+	equal(Normal,null) = false;
+	equal(Normal,Contract) = false;
+	equal(Attacker,Attacker) = true;
+	equal(Attacker,Normal) = false;
+	equal(Attacker,Owner) = false;
+	equal(Attacker,null) = false;
+	equal(Attacker,Contract) = false;
+	equal(Owner,Owner) = true;
+	equal(Owner,Normal) = false;
+	equal(Owner,Attacker) = false;
+	equal(Owner,null) = false;
+	equal(Owner,Contract) = false;
+	equal(null,null) = true;
+	equal(null,Normal) = false;
+	equal(null,Attacker) = false;
+	equal(null,Owner) = false;
+	equal(null,Contract) = false;
+	equal(Contract,Contract) = true;
+	equal(Contract,Normal) = false;
+	equal(Contract,Attacker) = false;
+	equal(Contract,Owner) = false;
+	equal(Contract,null) = false;
+	ad1 == ad2 = equal(ad1,ad2);
+%-------------------------------------------------
+sort Channel;
+cons empChannel : Channel;
+	addChannel : Address#Int#Int#Bool -> Channel;
+map
+	getPartyAddressChannel : Channel -> Address;
+	getEthBalanceChannel : Channel -> Int;
+	getConfirmTimeChannel : Channel -> Int;
+	getIsOpenChannel : Channel -> Bool;
+var
+	mbl : Address;
+	dfv : Int;
+	vao : Int;
+	iew : Bool;
+eqn
+	getPartyAddressChannel(empChannel) = null;
+	getPartyAddressChannel(addChannel(mbl,dfv,vao,iew)) = mbl;
+	getEthBalanceChannel(empChannel) = -2;
+	getEthBalanceChannel(addChannel(mbl,dfv,vao,iew)) = dfv;
+	getConfirmTimeChannel(empChannel) = -2;
+	getConfirmTimeChannel(addChannel(mbl,dfv,vao,iew)) = vao;
+	getIsOpenChannel(empChannel) = false;
+	getIsOpenChannel(addChannel(mbl,dfv,vao,iew)) = iew;
+%-------------------------------------------------
+sort MyStruct;
+cons empMyStruct : MyStruct;
+	addMyStruct : Int#Int -> MyStruct;
+map
+	getXMyStruct : MyStruct -> Int;
+	getYMyStruct : MyStruct -> Int;
+var
+	hic : Int;
+	cfb : Int;
+eqn
+	getXMyStruct(empMyStruct) = -2;
+	getXMyStruct(addMyStruct(hic,cfb)) = hic;
+	getYMyStruct(empMyStruct) = -2;
+	getYMyStruct(addMyStruct(hic,cfb)) = cfb;
+%-------------------------------------------------
+sort mapping1;
+cons emptyMapping1 : mapping1;
+	addMapping1 : Channel#Nat#mapping1 -> mapping1;
+map
+	retValueMapping1 : Channel#mapping1 -> Nat;
+	searchMapping1 : Channel#mapping1 -> Bool;
+	updateMapping1 : Channel#Nat#mapping1 -> mapping1;
+var
+	array : mapping1;
+	b,d : Nat;
+	a,c : Channel;
+eqn
+	retValueMapping1(a,emptyMapping1) = -1;
+	retValueMapping1(a,addMapping1(c,b,array)) = if(a == c,b,retValueMapping1(a,array));
+	searchMapping1(a,emptyMapping1) = false;
+	searchMapping1(a,addMapping1(c,b,array)) = if(a == c,true,searchMapping1(a,array));
+	updateMapping1(a,b,emptyMapping1) = emptyMapping1;
+	updateMapping1(a,b,addMapping1(c,d,array)) = if(a == c,addMapping1(a,b,array),addMapping1(c,d,updateMapping1(a,b,array)));
+%-------------------------------------------------
+sort mapping2;
+cons emptyMapping2 : mapping2;
+	addMapping2 : Address#Int#mapping2 -> mapping2;
+map
+	retValueMapping2 : Address#mapping2 -> Int;
+	searchMapping2 : Address#mapping2 -> Bool;
+	updateMapping2 : Address#Int#mapping2 -> mapping2;
+var
+	array : mapping2;
+	b,d : Int;
+	a,c : Address;
+eqn
+	retValueMapping2(a,emptyMapping2) = -1;
+	retValueMapping2(a,addMapping2(c,b,array)) = if(a == c,b,retValueMapping2(a,array));
+	searchMapping2(a,emptyMapping2) = false;
+	searchMapping2(a,addMapping2(c,b,array)) = if(a == c,true,searchMapping2(a,array));
+	updateMapping2(a,b,emptyMapping2) = emptyMapping2;
+	updateMapping2(a,b,addMapping2(c,d,array)) = if(a == c,addMapping2(a,b,array),addMapping2(c,d,updateMapping2(a,b,array)));
+%-------------------------------------------------
+act
+
+proc
+	harness(destructCounter:Int) =
+	
+	DAO(userBalances3:mapping1,userBalances1:mapping2,userBalances2:mapping2,balance:Int) =
+		sum addr:Address.sum value:Int.get_addToBalance(addr,value).addToBalance(userBalances1,addr,value,balance) +
+		sum amount:Int.sum addr:Address.get_withdrawBalance(amount,addr).withdrawBalance(amount,userBalances3,userBalances1,userBalances2,addr,balance) +
+		sum s:MyStruct.get_useStruct(s).useStruct(s,balance) +
+		sum value:Int.sum addr:Address.get_updateDAO(value,addr).DAO(update(addr,(retValue(addr,userBalances)) - value,userBalances),balance) +
+		sum value:Int.sum addr:Address.get_selfdestruct(value,addr).DAO(userBalances,balance + value);
+	
+	addToBalance(userBalances1:mapping2,addr:Address,value:Int,balance:Int) =
+	
+	
+	withdrawBalance(amount:Int,userBalances3:mapping1,userBalances1:mapping2,userBalances2:mapping2,addr:Address,balance:Int) =
+	
+	
+	useStruct(s:MyStruct,balance:Int) =
+	
+	
+
+init
