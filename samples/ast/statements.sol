@@ -1,40 +1,40 @@
 function exampleFunction() {
     // 1. If Statement
     if (x > 10) {
-    x = 0;
+        x = 0;
     } else {
-    x = 5;
+        x = 5;
     }
 
     // 2. While Statement
     while (x < 100) {
-    x += 10;
+        x += 10;
     }
 
     // 3. For Statement
     for (uint i = 0; i < 10; i++) {
-    sum += i;
+        sum += i;
     }
 
     // 4. Do-While Statement
     do {
-    x += 1;
+        x += 1;
     } while (x < 10);
 
     // 5. Continue Statement
     for (uint i = 0; i < 10; i++) {
-    if (i % 2 == 0) {
-    continue;
-    }
-    sum += i;
+        if (i % 2 == 0) {
+            continue;
+        }
+        sum += i;
     }
 
     // 6. Break Statement
     for (uint i = 0; i < 10; i++) {
-    if (i == 5) {
-    break;
-    }
-    sum += i;
+        if (i == 5) {
+            break;
+        }
+        sum += i;
     }
 
     // 7. Return Statement
@@ -54,21 +54,18 @@ function exampleFunction() {
 
     // 12. Unchecked Statement
     unchecked {
-    x += y;
+        x += y;
     }
 
     // 13. Revert Statement
     if (x > 100) {
-    revert("Error: x is greater than 100");
+        revert("Error: x is greater than 100");
     }
 
     // 14. Inline Assembly Statement
     assembly {
-    let result := add(1, 2)
+        let result := add(1, 2)
     }
-
-    // 15. Variable Declaration Statement with `var`
-    var (a, b) = (10, 20);
 
     // 16. Expression Statement
     x = x + 1;
@@ -78,11 +75,8 @@ function exampleFunction() {
 
     // 18. Array Indexing
     if (myArray.length > 0) {
-    uint element = myArray[0];
+        uint element = myArray[0];
     }
-
-    // 19. Struct Initialization
-    myStruct = MyStruct({a: 1, b: 2});
 
     // 20. Function Call Statement
     anotherFunction(1, 2, 3);

@@ -1,3 +1,4 @@
+
 contract WalletLibrary {
 
   // constructor is given number of sigs required to do protected "onlymanyowners" transactions

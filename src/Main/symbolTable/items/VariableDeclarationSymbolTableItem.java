@@ -9,12 +9,14 @@ public class VariableDeclarationSymbolTableItem extends SymbolTableItem {
     public static String START_KEY = "VarDeclaration_";  // Prefix for variable keys
     protected Type type;                      // Type of the variable
     protected Expression initiateValue;       // The initialization value of the variable
+    private VariableDeclaration variableDeclaration;
 
     // Constructor to create the symbol table item from a VariableDeclaration
     public VariableDeclarationSymbolTableItem(VariableDeclaration varDeclaration) {
         this.name = varDeclaration.getVariableName().getName();
         this.type = varDeclaration.getVariableType();
         this.initiateValue = null; // By default, no initial value
+        this.variableDeclaration = varDeclaration;
         this.setLine(varDeclaration.getLine());
     }
 

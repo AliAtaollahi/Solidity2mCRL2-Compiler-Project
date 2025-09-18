@@ -15,6 +15,10 @@ import main.ast.nodes.expression.value.ImportPath;
 import main.ast.nodes.expression.value.StorageLocation;
 import main.ast.nodes.statement.*;
 import main.symbolTable.items.*;
+import main.symbolTable.items.statement.DoWhileStatementSymbolTableItem;
+import main.symbolTable.items.statement.ForStatementSymbolTableItem;
+import main.symbolTable.items.statement.IfStatementSymbolTableItem;
+import main.symbolTable.items.statement.WhileStatementSymbolTableItem;
 
 public abstract class Visitor<T> implements IVisitor<T> {
     @Override
@@ -497,4 +501,24 @@ public abstract class Visitor<T> implements IVisitor<T> {
     public T visit(NoType noType){
         return null;
     }
+    @Override
+    public T visit(WhileStatementSymbolTableItem whileStatementSymbolTableItem){
+        return null;
+    }
+
+    @Override
+    public T visit(ForStatementSymbolTableItem forStatementSymbolTableItem){
+        return null;
+    }
+
+    @Override
+    public T visit(IfStatementSymbolTableItem ifStatementSymbolTableItem){
+        return null;
+    }
+
+    @Override
+    public T visit(DoWhileStatementSymbolTableItem doWhileStatementSymbolTableItem){
+        return null;
+    }
+
 }

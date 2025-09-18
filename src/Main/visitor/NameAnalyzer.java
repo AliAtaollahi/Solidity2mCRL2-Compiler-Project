@@ -23,6 +23,10 @@ import main.symbolTable.SymbolTable;
 import main.symbolTable.exceptions.ItemAlreadyExistsException;
 import main.symbolTable.exceptions.ItemNotFoundException;
 import main.symbolTable.items.*;
+import main.symbolTable.items.statement.DoWhileStatementSymbolTableItem;
+import main.symbolTable.items.statement.ForStatementSymbolTableItem;
+import main.symbolTable.items.statement.IfStatementSymbolTableItem;
+import main.symbolTable.items.statement.WhileStatementSymbolTableItem;
 import org.antlr.v4.runtime.misc.Pair;
 
 import java.util.ArrayList;
@@ -32,8 +36,10 @@ import java.util.Map;
 public class NameAnalyzer extends Visitor<Void> {
     private ContractDefinition currentContractDefinition;
     private FunctionDefinition currentfunctionDefinition;
+    private SymbolTable currentSymbolTable;
     private Statement currentStatement;
     private Boolean isCurrentPosOfStateVariableLeft = false;
+    private ContractDefinitionSymbolTableItem currentContractSymbolTableItem;
 
     @Override
     public Void visit(SourceUnit sourceUnit) {
@@ -68,6 +74,7 @@ public class NameAnalyzer extends Visitor<Void> {
             functionDefinition.accept(this);
         }
         this.currentfunctionDefinition = null;
+        this.currentSymbolTable = null;
 
         // Visit all FileLevelConstants
         for (FileLevelConstant fileLevelConstant : sourceUnit.getFileLevelConstants()) {
@@ -105,7 +112,18 @@ public class NameAnalyzer extends Visitor<Void> {
 
         // Visit the first operand
         if (binaryExpression.getFirstOperand() != null) {
-            if (binaryExpression.getBinaryOperator().equals(BinaryOperator.ASSIGNMENT)) {
+            if (binaryExpression.getBinaryOperator().equals(BinaryOperator.ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.ADDITION_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.BITWISE_AND_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.BITWISE_OR_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.BITWISE_XOR_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.DIVISION_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.LEFT_SHIFT_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.MODULUS_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.MULTIPLICATION_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.RIGHT_SHIFT_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.SUBTRACTION_ASSIGNMENT)
+                || binaryExpression.getBinaryOperator().equals(BinaryOperator.TERNARY_OPERATOR)) {
                 this.isCurrentPosOfStateVariableLeft = true;
             }
             binaryExpression.getFirstOperand().accept(this);
@@ -167,6 +185,8 @@ public class NameAnalyzer extends Visitor<Void> {
                 type,
                 contractDefinition
         );
+        
+        this.currentContractSymbolTableItem = contractSymbolTableItem;
 
         // Try to insert the contract symbol into the current symbol table
         try {
@@ -214,6 +234,7 @@ public class NameAnalyzer extends Visitor<Void> {
                     this.currentfunctionDefinition = (FunctionDefinition) contractPart;
                 contractPart.accept(this);  // Visit the contract part
                 this.currentfunctionDefinition = null;
+                this.currentSymbolTable = null;
             }
         }
 
@@ -377,6 +398,8 @@ public class NameAnalyzer extends Visitor<Void> {
 
         // for built-in functions
         if (functionDescriptor instanceof FunctionDescriptor) {
+            if (((FunctionDescriptor) functionDescriptor).getName() == null)
+                return null;
             String functionName_ = ((FunctionDescriptor) functionDescriptor).getName().getName();
 
             if (functionName_ != null && functionName_.contains("_builtIn")) {
@@ -402,6 +425,8 @@ public class NameAnalyzer extends Visitor<Void> {
                 functionDefinition,
                 currentContractDefinition
                 );
+        
+        functionSymbolTableItem.setContractDefinitionSymbolTableItem(this.currentContractSymbolTableItem);
 
         // Store the function's modifiers in the symbol table item
         if (functionDefinition.getModifierList() != null) {
@@ -436,6 +461,7 @@ public class NameAnalyzer extends Visitor<Void> {
         SymbolTable functionSymbolTable = new SymbolTable(SymbolTable.top);
         functionSymbolTableItem.setSymbolTable(functionSymbolTable);
         SymbolTable.push(functionSymbolTable);  // Push the function's new scope
+        this.currentSymbolTable = functionSymbolTable;
 
         // Process function parameters
         if (functionDefinition.getParameterList() != null) {
@@ -807,11 +833,15 @@ public class NameAnalyzer extends Visitor<Void> {
 
         // Try to insert the function call into the current symbol table
         try {
-            SymbolTable.top.put(functionCallSymbolTableItem);
+            if(currentSymbolTable != null) {
+                this.currentSymbolTable.put(functionCallSymbolTableItem);
+                SymbolTable.top.put(functionCallSymbolTableItem);
+            }
         } catch (ItemAlreadyExistsException e) {
+
             // If the function call is already defined in the current scope, report an error
-            System.out.println("Error: Function call to " + functionCallExpression.getFunctionName().toString() + " already declared in the current scope. in line " + functionCallExpression.getLine() + " .");
-            return null;
+//            System.out.println("Error: Function call to " + functionCallExpression.getFunctionName().toString() + " already declared in the current scope. in line " + functionCallExpression.getLine() + " .");
+//            return null;
         }
 
         return null;  // Since the method return type is Void
@@ -1030,33 +1060,85 @@ public class NameAnalyzer extends Visitor<Void> {
             ifStatement.getCondition().accept(this);
         }
 
-        // Visit the trueResult of the IfStatement
+        // Create IfStatementSymbolTableItem
+        IfStatementSymbolTableItem ifSymbolTableItem = new IfStatementSymbolTableItem(
+                (Block) ifStatement.getTrueResult(),
+                ifStatement.getFalseResult(),
+                SymbolTable.top.getItemsSize()  // Get current symbol table size
+        );
+        ifSymbolTableItem.setLine(ifStatement.getLine());
+
+        // Add to the symbol table
+        try {
+            SymbolTable.top.put(ifSymbolTableItem);
+        } catch (ItemAlreadyExistsException e) {
+            System.out.println("Error: If statement already exists in the current scope.");
+            return null;
+        }
+
+        // Create a new symbol table for the true result scope
+        SymbolTable ifTrueSymbolTable = new SymbolTable(SymbolTable.top);
+        ifSymbolTableItem.setIfSymbolTable(ifTrueSymbolTable);  // Assign to 'if' block
+        SymbolTable.push(ifTrueSymbolTable);
+
+        // Visit the true result scope
         if (ifStatement.getTrueResult() != null) {
             ifStatement.getTrueResult().accept(this);
         }
 
-        // Visit the falseResult of the IfStatement if it exists
+        // Pop the symbol table for true result
+        SymbolTable.pop();
+
+        // Create a new symbol table for the false result scope if present
         if (ifStatement.getFalseResult() != null) {
+            SymbolTable ifFalseSymbolTable = new SymbolTable(SymbolTable.top);
+            ifSymbolTableItem.setElseSymbolTable(ifFalseSymbolTable);  // Assign to 'else' block
+            SymbolTable.push(ifFalseSymbolTable);
+
+            // Visit the false result scope
             ifStatement.getFalseResult().accept(this);
+
+            // Pop the symbol table for false result
+            SymbolTable.pop();
         }
 
         return null;
     }
 
+
+
     @Override
     public Void visit(WhileStatement whileStatement) {
-        // Visit the condition of the WhileStatement
         if (whileStatement.getCondition() != null) {
             whileStatement.getCondition().accept(this);
         }
 
-        // Visit the scope (Statement) of the WhileStatement
+        WhileStatementSymbolTableItem whileSymbolTableItem = new WhileStatementSymbolTableItem(
+                (Block) whileStatement.getScope(),
+                SymbolTable.top.getItemsSize()
+        );
+        whileSymbolTableItem.setLine(whileStatement.getLine());
+
+        try {
+            SymbolTable.top.put(whileSymbolTableItem);
+        } catch (ItemAlreadyExistsException e) {
+            System.out.println("Error: While statement already exists in the current scope.");
+            return null;
+        }
+
+        SymbolTable whileSymbolTable = new SymbolTable(SymbolTable.top);
+        whileSymbolTableItem.setSymbolTable(whileSymbolTable);
+        SymbolTable.push(whileSymbolTable);
+
         if (whileStatement.getScope() != null) {
             whileStatement.getScope().accept(this);
         }
 
+        SymbolTable.pop();
+
         return null;
     }
+
 
     @Override
     public Void visit(ForStatement forStatement) {
@@ -1065,23 +1147,47 @@ public class NameAnalyzer extends Visitor<Void> {
             forStatement.getInitial().accept(this);
         }
 
-        // Visit the condition (ExpressionStatement) of the ForStatement
+        // Visit the condition of the ForStatement
         if (forStatement.getCondition() != null) {
             forStatement.getCondition().accept(this);
         }
 
-        // Visit the iteration (Expression) of the ForStatement
+        // Visit the iteration of the ForStatement
         if (forStatement.getIteration() != null) {
             forStatement.getIteration().accept(this);
         }
 
-        // Visit the scope (Statement) of the ForStatement
+        // Create ForStatementSymbolTableItem
+        ForStatementSymbolTableItem forSymbolTableItem = new ForStatementSymbolTableItem(
+                (Block) forStatement.getScope(),
+                SymbolTable.top.getItemsSize()  // Get current symbol table size
+        );
+        forSymbolTableItem.setLine(forStatement.getLine());
+
+        // Add to the symbol table
+        try {
+            SymbolTable.top.put(forSymbolTableItem);
+        } catch (ItemAlreadyExistsException e) {
+            System.out.println("Error: For statement already exists in the current scope.");
+            return null;
+        }
+
+        // Create a new symbol table for the scope of the for statement
+        SymbolTable forSymbolTable = new SymbolTable(SymbolTable.top);
+        forSymbolTableItem.setSymbolTable(forSymbolTable);
+        SymbolTable.push(forSymbolTable);
+
+        // Visit the scope (statement body) of the ForStatement
         if (forStatement.getScope() != null) {
             forStatement.getScope().accept(this);
         }
 
+        // Pop the symbol table after processing the scope
+        SymbolTable.pop();
+
         return null;
     }
+
 
     @Override
     public Void visit(RevertStatement revertStatement) {
@@ -1280,12 +1386,35 @@ public class NameAnalyzer extends Visitor<Void> {
 
     @Override
     public Void visit(DoWhileStatement doWhileStatement) {
-        // Visit the scope (Statement) inside the DoWhileStatement
+        // Create DoWhileStatementSymbolTableItem
+        DoWhileStatementSymbolTableItem doWhileSymbolTableItem = new DoWhileStatementSymbolTableItem(
+                (Block) doWhileStatement.getScope(),
+                SymbolTable.top.getItemsSize()  // Get current symbol table size
+        );
+        doWhileSymbolTableItem.setLine(doWhileStatement.getLine());
+
+        // Add to the symbol table
+        try {
+            SymbolTable.top.put(doWhileSymbolTableItem);
+        } catch (ItemAlreadyExistsException e) {
+            System.out.println("Error: Do-While statement already exists in the current scope.");
+            return null;
+        }
+
+        // Create a new symbol table for the do-while scope
+        SymbolTable doWhileSymbolTable = new SymbolTable(SymbolTable.top);
+        doWhileSymbolTableItem.setSymbolTable(doWhileSymbolTable);
+        SymbolTable.push(doWhileSymbolTable);
+
+        // Visit the scope (body) of the DoWhileStatement
         if (doWhileStatement.getScope() != null) {
             doWhileStatement.getScope().accept(this);
         }
 
-        // Visit the condition (Expression) inside the DoWhileStatement
+        // Pop the symbol table after finishing the scope
+        SymbolTable.pop();
+
+        // Visit the condition of the DoWhileStatement
         if (doWhileStatement.getCondition() != null) {
             doWhileStatement.getCondition().accept(this);
         }

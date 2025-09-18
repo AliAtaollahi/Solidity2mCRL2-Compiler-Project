@@ -653,11 +653,6 @@ expression returns [Expression expressionRet]
         $expressionRet = new StructInitializationExpression($e8.expressionRet, $nvl.nameValueListRet);
         $expressionRet.setLine($e8.expressionRet.getLine());
     }
-  | r = 'require' '(' e9 = expression ',' s = stringLiteral ')'
-    { 
-        $expressionRet = new RequireExpression($e9.expressionRet, $s.stringLiteralRet);
-        $expressionRet.setLine($r.line);
-    }
   | e10 = expression '(' fa = functionCallArguments ')'
     {
         $expressionRet = new FunctionCallExpression($e10.expressionRet, $fa.functionCallArgumentsRet);

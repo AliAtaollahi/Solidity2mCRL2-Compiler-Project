@@ -18,5 +18,8 @@ contract DAO {
             require(temp, 'error');
             userBalances[msg.sender] -= amount;
         }
+        else {
+            
+        }
     }
 }

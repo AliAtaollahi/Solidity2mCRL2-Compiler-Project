@@ -124,9 +124,10 @@ public class SymbolTable {
                         String functionItemKey = functionItem.getKey().replaceAll("\\(.*?\\)", "");
                         if (functionItemKey.equals(FunctionDefinition.START_KEY + FunctionDefinition.extractName(functionName))) {
                             // Check if argument types match
-                            if (areArgumentTypesMatching(functionItem, args, typeEvaluator)) {
+                            // meow
+//                            if (areArgumentTypesMatching(functionItem, args, typeEvaluator)) {
                                 return functionItem;
-                            }
+//                            }
                         }
                     }
                 }
@@ -142,6 +143,7 @@ public class SymbolTable {
                             // Check if argument types match
                             for (StructDefinitionSymbolTableItem structDefinitionSymbolTableItem : structDefinitionSymbolTableItems) {
                                 if (areArgumentTypesMatchingForStruct(structDefinitionSymbolTableItem, args, typeEvaluator)) {
+                                    typeEvaluator.setCurrentStructDefinitionSymbolTableItem(structDefinitionSymbolTableItem);
                                     return functionItem;
                                 }
                             }
@@ -187,57 +189,112 @@ public class SymbolTable {
     private boolean areArgumentTypesMatching(FunctionDefinitionSymbolTableItem functionItem, FunctionCallArguments args, TypeEvaluator typeEvaluator) {
         ParameterList functionParams = functionItem.getFunctionDefinitionPointer().getParameterList();
 
+        boolean hasListMemory = false;
+
+        for (Parameter parameter : functionParams.getParameters()) {
+            if (parameter.getType() instanceof ListType && parameter.getStorageLocation().getLocation().equals("memory")) {
+                hasListMemory = true;
+            }
+        }
+
         // Handle ExpressionList
-        if (args instanceof ExpressionList) {
-            ExpressionList expressionList = (ExpressionList) args;
+        if (!hasListMemory) {
+            if (args instanceof ExpressionList) {
+                ExpressionList expressionList = (ExpressionList) args;
 
-            // If argument count does not match, return false
-            if (expressionList.getExpressionList().size() != functionParams.getParameters().size()) {
-                return false;
-            }
-
-            // Compare each argument type
-            for (int i = 0; i < expressionList.getExpressionList().size(); i++) {
-                Type argumentType = expressionList.getExpressionList().get(i).accept(typeEvaluator); // Infer type of the argument
-                Type functionParamType = functionParams.getParameters().get(i).getType();
-
-                // Check if types are compatible
-                if (!areTypesCompatible(argumentType, functionParamType)) {
+                // If argument count does not match, return false
+                if (expressionList.getExpressionList().size() != functionParams.getParameters().size()) {
                     return false;
                 }
+
+                // Compare each argument type
+                for (int i = 0; i < expressionList.getExpressionList().size(); i++) {
+                    Type argumentType = expressionList.getExpressionList().get(i).accept(typeEvaluator); // Infer type of the argument
+                    Type functionParamType = functionParams.getParameters().get(i).getType();
+
+                    // Check if types are compatible
+                    if (!areTypesCompatible(argumentType, functionParamType)) {
+                        return false;
+                    }
+                }
+                return true;
             }
-            return true;
-        }
 
-        // Handle NameValueList
-        if (args instanceof NameValueList) {
-            NameValueList nameValueList = (NameValueList) args;
+            // Handle NameValueList
+            if (args instanceof NameValueList) {
+                NameValueList nameValueList = (NameValueList) args;
 
-            // If argument count does not match, return false
-            if (nameValueList.getNameValues().size() != functionParams.getParameters().size()) {
-                return false;
-            }
-
-            // Compare each argument name and type
-            for (int i = 0; i < nameValueList.getNameValues().size(); i++) {
-                NameValue nameValue = nameValueList.getNameValues().get(i);
-                Type argumentType = nameValue.getValue().accept(typeEvaluator); // Infer type of the value
-                Identifier argumentName = nameValue.getKey();
-                Parameter param = functionParams.getParameters().get(i);
-
-                // Check if names and types match
-                if (!argumentName.getName().equals(param.getIdentifier().getName()) ||
-                        !areTypesCompatible(argumentType, param.getType())) {
+                // If argument count does not match, return false
+                if (nameValueList.getNameValues().size() != functionParams.getParameters().size()) {
                     return false;
                 }
+
+                // Compare each argument name and type
+                for (int i = 0; i < nameValueList.getNameValues().size(); i++) {
+                    NameValue nameValue = nameValueList.getNameValues().get(i);
+                    Type argumentType = nameValue.getValue().accept(typeEvaluator); // Infer type of the value
+                    Identifier argumentName = nameValue.getKey();
+                    Parameter param = functionParams.getParameters().get(i);
+
+                    // Check if names and types match
+                    if (!argumentName.getName().equals(param.getIdentifier().getName()) ||
+                            !areTypesCompatible(argumentType, param.getType())) {
+                        return false;
+                    }
+                }
+                return true;
             }
-            return true;
+
+            if (args == null && functionParams.getParameters().isEmpty())
+                return true;
+        }
+        else {
+            if (args instanceof ExpressionList) {
+                ExpressionList expressionList = (ExpressionList) args;
+
+                if (expressionList.getExpressionList().size() < functionParams.getParameters().size() - 1) {
+                    return false; // Not enough arguments for the fixed part of the parameter list
+                }
+
+                for (int i = 0; i < functionParams.getParameters().size() - 1; i++) {
+                    Type argumentType = expressionList.getExpressionList().get(i).accept(typeEvaluator); // Infer type of the argument
+                    Type functionParamType = functionParams.getParameters().get(i).getType(); // Expected type
+
+                    if (!areTypesCompatible(argumentType, functionParamType)) {
+                        return false; // Type mismatch found
+                    }
+                }
+
+                return true;
+            }
+
+            if (args instanceof NameValueList) {
+                NameValueList nameValueList = (NameValueList) args;
+
+                if (nameValueList.getNameValues().size() < functionParams.getParameters().size() - 1) {
+                    return false; // Not enough arguments for the fixed part of the parameter list
+                }
+
+                for (int i = 0; i < functionParams.getParameters().size() - 1; i++) {
+                    NameValue nameValue = nameValueList.getNameValues().get(i);
+                    Type argumentType = nameValue.getValue().accept(typeEvaluator); // Infer type of the argument
+                    Identifier argumentName = nameValue.getKey();
+                    Parameter param = functionParams.getParameters().get(i);
+
+                    if (!argumentName.getName().equals(param.getIdentifier().getName()) ||
+                            !areTypesCompatible(argumentType, param.getType())) {
+                        return false; // Type mismatch or name mismatch
+                    }
+                }
+
+                return true;
+            }
+
+            if (args == null && functionParams.getParameters().isEmpty()) {
+                return true;
+            }
         }
 
-        if (args == null && functionParams.getParameters().isEmpty())
-            return true;
-
-        // If we reach here, the arguments format is unsupported
         return false;
     }
 

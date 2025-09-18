@@ -1,0 +1,106 @@
+sort Array;
+cons emptyArray : Array;
+	 addArray : Nat#Int#Array -> Array;
+map
+	retItem : Nat#Array -> Int;
+	searchItem : Int#Array -> Bool;
+	searchIndex : Int#Array -> Nat;
+	updateArray: Nat#Int#Array -> Array;
+var
+	array : Array;
+	b,d : Int;
+	a,c : Nat;
+eqn
+	retItem(a,emptyArray) = -9000;
+	retItem(a,addArray(c,b,array)) = if(a == c,b,retItem(a,array));
+	searchItem(a,emptyArray) = false;
+	searchItem(a,addArray(c,b,array)) = if(a == b,true,searchItem(a,array));
+	searchIndex(a,emptyArray) = 9000;
+	searchIndex(a,addArray(c,b,array)) = if(a == b,c,searchItem(a,array));
+	updateArray(a,b,emptyArray) = emptyArray;
+	updateArray(a,b,addArray(c,d,array)) = if(a == c,addArray(a,b,array),addArray(c,d,updateArray(a,b,array)));
+%-------------------------------------------------
+act
+
+proc
+	harness = 
+		sum value:Int.(value < 10 && value > 10) -> 
+			(call_exampleFunction(value).(sum retValue:Int.get_retValueScope(retValue))).harness
+		<> delta;
+	
+	ExampleContract(myArray:Array) =
+		sum x:Int.get_exampleFunction(x).exampleFunction(myArray,0,0,false);
+		
+	// rules 1 .. 7, 17, 18
+	exampleFunction(myArray:Array,temp:Int,sumV:Int,isPositive:Bool) = 
+		(x > 10) ->
+			(
+			call_succIf.
+			whileScope(x).get_succWhile.
+			ForScope(0, sumV).sum forSum:Int.get_succFor(forSum).
+			DoWhileScope(x).get_succDoWhile.
+			ContinueScope(0,forSum).sum ContinueSum:Int.get_succContinue(ContinueSum).
+			BreakScope(0,ContinueSum).sum BreakSum:Int.get_succBreak(BreakSum).
+			getValueScope.sum consRetValue:Int.get_succValue(consRetValue).call_retValueScope(consRetValue).
+			isPositiveScope(x,isPositive).sum newIsPositive:Bool.call_newIsPositive(newIsPositive).
+			arrayScope(myArray).sum element:Int.call_retArray(element).
+			ExampleContract(myArray)
+			)
+		<>  (
+			call_succIf.
+			whileScope(x).get_succWhile.
+			ForScope(5, sumV).sum forSum:Int.get_succFor(forSum).
+			DoWhileScope(x).get_succDoWhile.
+			ContinueScope(5,forSum).sum ContinueSum:Int.get_succContinue(ContinueSum).
+			BreakScope(5,ContinueSum).sum BreakSum:Int.get_succBreak(BreakSum).
+			getValueScope.sum consRetValue:Int.get_succValue(consRetValue).call_retValueScope(consRetValue).
+			isPositiveScope(x,isPositive).sum newIsPositive:Bool.call_newIsPositive(newIsPositive).
+			arrayScope(myArray).sum element:Int.call_retArray(element).
+			ExampleContract(myArray)
+			);
+		
+	whileScope(x:Int) =
+		(x < 100) ->
+			(firstAct.addFunc(1,2,3).sum retVal:Int.get_retaddFunc(retVal).whileScope(x + (20 + (3 * retVal))))
+		<> (call_succWhile);
+	
+	addFunc(a:Int,b:Int,c:Int) = 
+		call_retaddFunc(a + b + c);
+	
+	ForScope(i:Int,sumV:Int) =
+		(i < 10) ->
+			(firstAct.ForScope(i + 1, sumV + i))
+		<> (call_succFor(sumV));
+	
+	DoWhileScope(x:Int) =
+		((x + 1) < 10) ->
+			(firstAct.DoWhileScope(x + 1))
+		<> (call_succDoWhile);
+		
+	ContinueScope(i:Int,sumV:Int) =
+		(i < 10) ->
+			(((i mod 2) == 0) ->
+				(firstAct.ContinueScope(i + 1,sumV))
+			<> (firstAct.ContinueScope(i + 1,sumV + i)))
+		<> (call_succContinue(sumV));
+	
+	BreakScope(i:Int,sumV:Int) =
+		(i < 10) ->
+			((i == 5) ->
+				(call_succBreak(sumV))
+			<> (firstAct.BreakScope(i + 1,sumV + i)))
+		<> (call_succBreak(sumV));
+		
+	isPositiveScope(x:Int) = 
+		(x >= 0) ->
+			(call_newIsPositive(true))
+		<> (call_newIsPositive(false));
+		
+	arrayScope(myArray:Array) =
+		(retItem(0,myArray) != -9000) ->
+			(call_retArray(retItem(0,myArray)))
+		<> empty_Array;
+		
+	getValueScope =
+		call_succValue(42);
+init

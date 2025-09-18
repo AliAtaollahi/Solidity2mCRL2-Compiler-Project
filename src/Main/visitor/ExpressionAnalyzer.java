@@ -75,8 +75,10 @@ public class ExpressionAnalyzer extends Visitor<Void> {
 
     @Override
     public Void visit(Identifier identifier) {
-        if (searchItem.equals(identifier.getName()))
+        if (searchItem.equals(identifier.getName())) {
             this.isFound = true;
+            searchItem = "";
+        }
         return null;
     }
 

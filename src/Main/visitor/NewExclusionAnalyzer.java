@@ -10,7 +10,8 @@ import main.ast.nodes.expression.*;
 import main.ast.nodes.expression.modifier.Modifier;
 import main.ast.nodes.expression.primary.*;
 import main.ast.nodes.expression.type.UserDefinedTypeName;
-import main.ast.nodes.statement.Statement;
+import main.ast.nodes.expression.type.primitive.UintType;
+import main.ast.nodes.statement.*;
 import main.symbolTable.SymbolTable;
 import main.symbolTable.exceptions.ItemNotFoundException;
 import main.symbolTable.items.*;
@@ -58,7 +59,7 @@ public class NewExclusionAnalyzer extends Visitor<Void> {
                     symbolTable.items.entrySet().remove(entry);
                 }
                 // Rule 8 of elimination rules
-                else if (tempItem.getContractSymbolTable().getItemsSize() <= 4) {
+                else if (tempItem.getContractSymbolTable().getItemsSize() <= 6 && tempItem.getContractSymbolTable().getItemsSize() != 1) {
                     ContractDefinition mustDeletedContractDefinition = tempItem.getContractDefinition();
                     this.deletedContractDefinitions.add(mustDeletedContractDefinition);
                     sourceUnit.removeContractDefinition(mustDeletedContractDefinition);
@@ -69,7 +70,6 @@ public class NewExclusionAnalyzer extends Visitor<Void> {
 
         return null;
     }
-
 
     @Override
     public Void visit(ContractDefinitionSymbolTableItem contractDefinitionSymbolTableItem) {
@@ -146,6 +146,11 @@ public class NewExclusionAnalyzer extends Visitor<Void> {
                 String nameOfCaller = ((Identifier)((AccessExpression) functionCallSymbolTableItem.getFunctionName()).getMaster()).getName();
                 try {
                     SymbolTableItem item = functionCallSymbolTableItem.getCurrentSymbolTable().getItem(VariableDeclarationSymbolTableItem.START_KEY + nameOfCaller, true);
+
+                    // for Math
+                    if (((VariableDeclarationSymbolTableItem)item).getType() instanceof UintType)
+                        return null;
+
                     String tokenName = ((UserDefinedTypeName)((VariableDeclarationSymbolTableItem)item).getType()).getTypeChain().get(0).getName();
                     this.tokensHandler.buildByBuiltIn(tokenName, functionCallSymbolTableItem.getFunctionCallExpression());
 

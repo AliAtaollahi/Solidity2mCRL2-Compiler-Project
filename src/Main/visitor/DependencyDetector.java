@@ -29,9 +29,20 @@ public class DependencyDetector extends Visitor<Void> {
     private DependencyTree dependencyTree = new DependencyTree();
     private Set<DependencyNode> initNodes = new HashSet<>();
     private FunctionDefinitionSymbolTableItem currentFunctionDefinition;
+    private Set<DependencyNode> allVisitedNodes;
     private StructDefinitionSymbolTableItem currentStructDefinition;
     private DependencyNode currentFunctionDefinitionNode;
     private ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer();
+
+    public boolean hasDelegatecall() {
+        return hasDelegatecall;
+    }
+
+    public void setHasDelegatecall(boolean hasDelegatecall) {
+        this.hasDelegatecall = hasDelegatecall;
+    }
+
+    private boolean hasDelegatecall = false;
 
     @Override
     public Void visit(SourceUnit sourceUnit) {
@@ -41,53 +52,45 @@ public class DependencyDetector extends Visitor<Void> {
             item.accept(this);
         }
         // Rule 7
-        this.traverseDependencyTree();
+        bfsDependencies();
 
         // Rule 4
         this.addDepentConstructors();
         return null;
     }
 
-    private void traverseDependencyTree() {
-        Set<DependencyNode> newNodes = new HashSet<>();
-        // For each node in initNodes, find its dependencies recursively
-        for (DependencyNode dependencyNode : new HashSet<>(this.initNodes)) {
-            addAllDependentFunctions(dependencyNode, newNodes);
-        }
-        // Add all new nodes to initNodes after iteration is complete
-        this.initNodes.addAll(newNodes);
-    }
+    public void bfsDependencies() {
+        allVisitedNodes = new HashSet<>();
+        Queue<DependencyNode> queue = new LinkedList<>();
 
-    // Rule 5
-    private void addAllDependentFunctions(DependencyNode node, Set<DependencyNode> newNodes) {
-        if (!this.initNodes.contains(node)) {
-            return;
-        }
-        // Get all the nodes dependent on the current node from the dependency tree
-        Set<DependencyNode> dependencies = this.dependencyTree.getDependencies(node);
+        // Initialize the queue with all nodes in initNodes
+        queue.addAll(initNodes);
+        allVisitedNodes.addAll(initNodes);  // Mark initNodes as visited
 
-        // If no dependencies, return
-        if (dependencies == null || dependencies.isEmpty()) {
-            return;
-        }
+        while (!queue.isEmpty()) {
+            DependencyNode currentNode = queue.poll();
 
-        // Iterate over the dependencies and add them to the newNodes set if not already present
-        for (DependencyNode dependency : dependencies) {
-            if (!this.initNodes.contains(dependency) && !newNodes.contains(dependency)) {
-                newNodes.add(dependency);
-                // Recursively find and add dependencies of the current dependency
-                addAllDependentFunctions(dependency, newNodes);
+            // Get dependencies of the current node from the dependency tree
+            Set<DependencyNode> dependencies = dependencyTree.getDependencies(currentNode);
+
+            for (DependencyNode dependency : dependencies) {
+                // If the dependency has not been visited, add it to the queue and visited set
+                if (!allVisitedNodes.contains(dependency)) {
+                    allVisitedNodes.add(dependency);
+                    queue.add(dependency);
+                }
             }
         }
     }
 
+
     private void addDepentConstructors() {
-        for (DependencyNode dependencyNode : initNodes) {
+        for (DependencyNode dependencyNode : allVisitedNodes) {
             SymbolTableItem symbolTableItem = dependencyNode.getItemKey();
             if (symbolTableItem instanceof FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem) {
                 if (functionDefinitionSymbolTableItem.getFunctionDefinitionPointer().getFunctionDescriptor() instanceof OtherFunctionDescriptors otherFunctionDescriptors) {
                     if (otherFunctionDescriptors.getName().equals("constructor")) {
-                        this.initNodes.add(new DependencyNode(symbolTableItem, ((FunctionDefinitionSymbolTableItem) symbolTableItem).getContractDefinitionContainer()));
+                        this.allVisitedNodes.add(new DependencyNode(symbolTableItem, ((FunctionDefinitionSymbolTableItem) symbolTableItem).getContractDefinitionContainer()));
                     }
                 }
             }
@@ -136,13 +139,24 @@ public class DependencyDetector extends Visitor<Void> {
         Expression functionName = functionCallSymbolTableItem.getFunctionName();
         TypeEvaluator typeEvaluator = new TypeEvaluator(functionCallSymbolTableItem.getCurrentSymbolTable());
         Type type = typeEvaluator.visit(functionCallSymbolTableItem.getFunctionCallExpression());
+
+        ArrayList<SymbolTableItem> delegatecalls = typeEvaluator.getCurrentDelegatecallFunctionsFound();
+        if (!delegatecalls.isEmpty()) {
+            for (SymbolTableItem delegatecall : delegatecalls) {
+                DependencyNode calledFunction = new DependencyNode(delegatecall, ((FunctionDefinitionSymbolTableItem)delegatecall).getContractDefinitionContainer());
+                this.dependencyTree.addDependency(this.currentFunctionDefinitionNode, calledFunction);
+                this.dependencyTree.addDependency(calledFunction, this.currentFunctionDefinitionNode);
+            }
+            typeEvaluator.setCurrentDelegatecallFunctionsFound(new ArrayList<>());
+        }
+
         SymbolTableItem item = typeEvaluator.getCurrentItemFoundFromSymbolTable();
 
         // Rule 1
         if (item instanceof FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem) {
             if (functionName instanceof AccessExpression) {
                 String temp = ((AccessExpression) functionName).getMember().getName();
-                if (temp.equals("send") || temp.equals("transfer") || temp.equals("delegatecall")) {
+                if (temp.equals("send") || temp.equals("transfer") || temp.equals("delegatecall") || temp.equals("safeTransfer")) {
                     this.initNodes.add(this.currentFunctionDefinitionNode);
                 }
             }
@@ -151,9 +165,16 @@ public class DependencyDetector extends Visitor<Void> {
         if (item instanceof FunctionDefinitionSymbolTableItem calledFunctionData) {
             DependencyNode calledFunction = new DependencyNode(item, calledFunctionData.getContractDefinitionContainer());
             this.dependencyTree.addDependency(this.currentFunctionDefinitionNode, calledFunction);
+            this.dependencyTree.addDependency(calledFunction, this.currentFunctionDefinitionNode);
         } else if (item instanceof StructDefinitionSymbolTableItem calledStructData) {
             DependencyNode calledStruct = new DependencyNode(item, calledStructData.getContractDefinition());
             this.dependencyTree.addDependency(this.currentFunctionDefinitionNode, calledStruct);
+            this.dependencyTree.addDependency(calledStruct, this.currentFunctionDefinitionNode);
+        }
+
+        if (typeEvaluator.getCurrentStructDefinitionSymbolTableItem() != null) {
+            this.initNodes.add(new DependencyNode(typeEvaluator.getCurrentStructDefinitionSymbolTableItem(), this.currentFunctionDefinition.getContractDefinitionContainer()));
+            typeEvaluator.setCurrentStructDefinitionSymbolTableItem(null);
         }
 //        if (functionName instanceof AccessExpression) {
 //            type = typeEvaluator.visit((AccessExpression) functionName);
@@ -258,9 +279,24 @@ public class DependencyDetector extends Visitor<Void> {
         // Rule 2, 3
         if(functionDefinitionSymbolTableItem.getScope() != null) {
             if (this.expressionAnalyzer.findItem("delegatecall", functionDefinitionSymbolTableItem.getScope())) {
+                this.hasDelegatecall = true;
                 this.initNodes.add(this.currentFunctionDefinitionNode);
             } else if (this.expressionAnalyzer.findAccessExpression("tx", "origin", functionDefinitionSymbolTableItem.getScope())) {
                 this.initNodes.add(this.currentFunctionDefinitionNode);
+            } else if (this.expressionAnalyzer.findItem("transfer", functionDefinitionSymbolTableItem.getScope()) ||
+                      (this.expressionAnalyzer.findItem("safeTransfer", functionDefinitionSymbolTableItem.getScope())) ||
+                      (this.expressionAnalyzer.findItem("transferFrom", functionDefinitionSymbolTableItem.getScope())) ||
+                      (this.expressionAnalyzer.findItem("send", functionDefinitionSymbolTableItem.getScope())) ||
+                      (this.expressionAnalyzer.findItem("call", functionDefinitionSymbolTableItem.getScope()))) {
+                this.initNodes.add(this.currentFunctionDefinitionNode);
+            }
+
+            if (this.expressionAnalyzer.findAccessExpression("msg", "sender", functionDefinitionSymbolTableItem.getScope())) {
+                functionDefinitionSymbolTableItem.addBuiltInusedVars("addr");
+            }
+
+            if (this.expressionAnalyzer.findAccessExpression("msg", "value", functionDefinitionSymbolTableItem.getScope())) {
+                functionDefinitionSymbolTableItem.addBuiltInusedVars("value");
             }
         }
 
@@ -268,11 +304,16 @@ public class DependencyDetector extends Visitor<Void> {
         for (Pair<Identifier, Boolean> identifier : functionDefinitionSymbolTableItem.getFunctionDefinitionPointer().getIdentifiers()) {
             try {
                 SymbolTableItem item = functionDefinitionSymbolTableItem.getSymbolTable().getItem(StateVariableSymbolTableItem.START_KEY + identifier.a.getName(), true);
+                functionDefinitionSymbolTableItem.addStateVariableSymbolTableItems((StateVariableSymbolTableItem) item);
+//                this.initNodes.add(new DependencyNode(item, this.currentFunctionDefinition.getContractDefinitionContainer()));
                 for (SymbolTableItem symbolTableItem : functionDefinitionSymbolTableItem.getSymbolTable().pre.items.values()) {
                     if (symbolTableItem instanceof FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem1) {
                         if (functionDefinitionSymbolTableItem1.getFunctionDefinitionPointer().getIdentifiers().contains(identifier)) {
                             if (identifier.b) {
-                                this.initNodes.add(new DependencyNode(symbolTableItem, this.currentFunctionDefinition.getContractDefinitionContainer()));
+                                DependencyNode calledFunction = new DependencyNode(functionDefinitionSymbolTableItem1, functionDefinitionSymbolTableItem1.getContractDefinitionContainer());
+                                this.dependencyTree.addDependency(this.currentFunctionDefinitionNode, calledFunction);
+                                this.dependencyTree.addDependency(calledFunction, this.currentFunctionDefinitionNode);
+//                                this.initNodes.add(new DependencyNode(symbolTableItem, this.currentFunctionDefinition.getContractDefinitionContainer()));
                             }
                         }
                     }
@@ -333,5 +374,13 @@ public class DependencyDetector extends Visitor<Void> {
 //                }
 //            }
 //        }
+    }
+
+    public Set<DependencyNode> getInitNodes() {
+        return initNodes;
+    }
+
+    public void setInitNodes(Set<DependencyNode> initNodes) {
+        this.initNodes = initNodes;
     }
 }

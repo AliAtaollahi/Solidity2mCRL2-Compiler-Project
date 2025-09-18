@@ -86,13 +86,17 @@ proc
 		<> delta;
 	
 	Auction(highestBidder:Address,highestBid:Int,balance:Int) =
-		sum value:Int.sum addr:Address.get_bid(value,addr).bid(highestBidder,highestBid,balance,value,addr) +
-		sum value:Int.sum addr:Address.get_updateAuction(value,addr).Auction(addr,value,balance) +
-		sum value:Int.sum addr:Address.get_selfdestruct(value,addr).Auction(highestBidder,highestBid,balance+value);		
+		sum value:Int.sum addr:Address.get_bid(value,addr).
+		    bid(highestBidder,highestBid,balance,value,addr) +
+		sum value:Int.sum addr:Address.get_updateAuction(value,addr).
+		    Auction(addr,value,balance) +
+		sum value:Int.sum addr:Address.get_selfdestruct(value,addr).
+		    Auction(highestBidder,highestBid,balance+value);
 	
 	bid(highestBidder:Address,highestBid:Int,balance:Int,value:Int,addr:Address) =
 		(value > highestBid) ->
-			(bid_firstSuccess.
+			(
+			bid_firstSuccess.
 			((highestBidder == null && highestBid == 0) -> 
 				(call_succBid.Auction(addr,value,balance + value))
 			<>(highestBidder != null || highestBid != 0) ->
@@ -102,7 +106,8 @@ proc
 					Auction(highestBidder,highestBid,balance)) +
 				(call_transfer_Fallback(highestBidder).bid_secondSuccess.call_succBid.
 					Auction(highestBidder,highestBid,balance - highestBid)))
-			<> delta))
+			<> delta)
+			)
 		<> bid_firstFail.call_failBid.Auction(highestBidder,highestBid,balance);
 		
 	AttackerContract(PreBidder:Address,i:Int,eta:Nat,initValue:Int,addr:Address) =

@@ -55,7 +55,7 @@ public class Solidity {
         // Final symbol table hash code to ensure no errors
         SymbolTable.root.hashCode();
 
-        CodeGeneration codeGeneration = new CodeGeneration();
+        CodeGeneration codeGeneration = new CodeGeneration(dependencyDetector.getInitNodes(), args[0].substring(args[0].lastIndexOf('/') + 1, args[0].lastIndexOf('.')), dependencyDetector.hasDelegatecall());
         codeGeneration.visit(sourceUnit);
     }
 }

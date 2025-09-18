@@ -1,0 +1,40 @@
+sort Address;
+cons Normal,Attacker,Owner,null,Contract : Address;
+map
+	equal : Address#Address -> Bool;
+var ad1,ad2: Address;
+eqn
+	equal(Normal,Normal) = true;
+	equal(Normal,Attacker) = false;
+	equal(Normal,Owner) = false;
+	equal(Normal,null) = false;
+	equal(Normal,Contract) = false;
+	equal(Attacker,Attacker) = true;
+	equal(Attacker,Normal) = false;
+	equal(Attacker,Owner) = false;
+	equal(Attacker,null) = false;
+	equal(Attacker,Contract) = false;
+	equal(Owner,Owner) = true;
+	equal(Owner,Normal) = false;
+	equal(Owner,Attacker) = false;
+	equal(Owner,null) = false;
+	equal(Owner,Contract) = false;
+	equal(null,null) = true;
+	equal(null,Normal) = false;
+	equal(null,Attacker) = false;
+	equal(null,Owner) = false;
+	equal(null,Contract) = false;
+	equal(Contract,Contract) = true;
+	equal(Contract,Normal) = false;
+	equal(Contract,Attacker) = false;
+	equal(Contract,Owner) = false;
+	equal(Contract,null) = false;
+	ad1 == ad2 = equal(ad1,ad2);
+%-------------------------------------------------
+act
+
+proc
+	harness(destructCounter:Int) =
+	
+
+init

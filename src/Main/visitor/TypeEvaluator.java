@@ -12,6 +12,7 @@ import main.ast.nodes.expression.modifier.Modifier;
 import main.ast.nodes.expression.modifier.ModifierInvocation;
 import main.ast.nodes.expression.modifier.OtherModifers;
 import main.ast.nodes.expression.modifier.OverrideSpecifier;
+import main.ast.nodes.expression.operators.UnaryOperator;
 import main.ast.nodes.expression.type.*;
 import main.ast.nodes.expression.operators.BinaryOperator;
 import main.ast.nodes.expression.primary.*;
@@ -25,6 +26,9 @@ import main.ast.nodes.expression.value.ImportPath;
 import main.ast.nodes.expression.value.StorageLocation;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 import static main.ast.nodes.expression.operators.UnaryOperator.*;
 import static main.ast.nodes.expression.operators.UserDefinableOperator.*;
@@ -33,6 +37,9 @@ public class TypeEvaluator extends Visitor<Type> {
 
     private SymbolTable symbolTable;
     private SymbolTableItem currentItemFoundFromSymbolTable;
+    private boolean checkDelegatecall = false;
+    private ArrayList<SymbolTableItem> currentDelegatecallFunctionsFound = new ArrayList<>();
+    private StructDefinitionSymbolTableItem currentStructDefinitionSymbolTableItem;
 
     public TypeEvaluator(SymbolTable symbolTable_) {
         this.symbolTable = symbolTable_;
@@ -110,7 +117,14 @@ public class TypeEvaluator extends Visitor<Type> {
     // UnaryExpression Type Inference
     @Override
     public Type visit(UnaryExpression unaryExpression) {
+        if (unaryExpression.getExpression() instanceof ParenthesizedExpression parenthesizedExpression) {
+            unaryExpression.setExpression(parenthesizedExpression.getExpression());
+        }
         Type operandType = unaryExpression.getExpression().accept(this);
+
+        if(unaryExpression.getOp().equals(NOT)) {
+            return new BoolType();
+        }
 
         // Ensure the operand type is not null before proceeding.
         if (operandType == null) {
@@ -149,11 +163,13 @@ public class TypeEvaluator extends Visitor<Type> {
         }
     }
 
-
-
     // FunctionCallExpression Type Inference
     @Override
     public Type visit(FunctionCallExpression functionCallExpression) {
+        if(functionCallExpression.getFunctionName() instanceof Identifier && ((Identifier) functionCallExpression.getFunctionName()).getName().equals("address")) {
+            return new AddressType();
+        }
+
         Expression functionName = functionCallExpression.getFunctionName();
         FunctionCallArguments args = functionCallExpression.getArgs();
 
@@ -195,8 +211,12 @@ public class TypeEvaluator extends Visitor<Type> {
                     return type;
                 }
             }
-            else if (functionName instanceof ObjectCreation) {
+            else if (functionName instanceof ObjectCreation objectCreation) {
                 try {
+                    if (objectCreation.getType() instanceof ByteUpperCaseType)
+                        return new ByteUpperCaseType("");
+                    if (objectCreation.getType() instanceof StringType)
+                        return new StringType();
                     String contractName = ((UserDefinedTypeName)((ObjectCreation) functionName).getType()).getTypeChain().get(0).getName();
                     ContractDefinitionSymbolTableItem contractItem = ((ContractDefinitionSymbolTableItem)this.symbolTable.getItem(ContractDefinitionSymbolTableItem.START_KEY + contractName, true));
                     this.currentItemFoundFromSymbolTable = contractItem.getContractSymbolTable().getConstrcutorItem(args, this);
@@ -207,8 +227,32 @@ public class TypeEvaluator extends Visitor<Type> {
             }
             else if (functionName instanceof AccessExpression) {
                 Type type = ((AccessExpression) functionName).getMaster().accept(this);
-                if (type instanceof AddressType)
+                if (type instanceof AddressType) {
+                    checkIsDelegatecallAndHandle((AccessExpression) functionName, (ExpressionList) args);
                     return new AddressType();
+                }
+                // for Math
+                String methodName = ((AccessExpression) functionName).getMember().getName();
+                if (methodName.equals("add") || methodName.equals("min") ||  methodName.equals("sqrt") || methodName.equals("mul") || methodName.equals("div") || methodName.equals("sub"))
+                    return type;
+                if (methodName.equals("balanceOf") || methodName.equals("uqdiv") || methodName.equals("encode") || methodName.equals("take") || methodName.equals("mint") || methodName.equals("getConfigValue"))
+                    return new UintType();
+                if (methodName.equals("dev"))
+                    return new AddressType();
+                if (((AccessExpression) functionName).getMaster() instanceof Identifier identifier) {
+                    if (identifier.getName().equals("TransferHelper")) {
+                        UserDefinedTypeName temp = new UserDefinedTypeName();
+                        temp.addChainRing("TransferHelper");
+                        type = temp;
+                    }
+                }
+                if (methodName.equals("demaxCall") || methodName.equals("transferFrom") || methodName.equals("transfer"))
+                    return new NoType();
+                if (methodName.equals("encodeWithSelector"))
+                    return new AddressType();
+                if (methodName.equals("decode") || methodName.equals("value"))
+                    return new BoolType();
+
                 String contractName = ((UserDefinedTypeName)type).getTypeChain().get(0).getName();
                 ContractDefinitionSymbolTableItem contractItem = ((ContractDefinitionSymbolTableItem)this.symbolTable.getItem(ContractDefinitionSymbolTableItem.START_KEY + contractName, true));
                 SymbolTableItem functionItem = contractItem.getContractSymbolTable().getFunctionItem(((AccessExpression) functionName).getMember(), args, this);
@@ -223,11 +267,150 @@ public class TypeEvaluator extends Visitor<Type> {
                 }
             }
         } catch (ItemNotFoundException e) {
-            System.err.println("Error: " + e.getMessage());
+//            System.err.println("Error: " + e.getMessage());
         }
 
         return null; // Return null if the type cannot be inferred.
     }
+
+    private void checkIsDelegatecallAndHandle(AccessExpression functionName, ExpressionList args) {
+        if (functionName.getMember().getName().equals("delegatecall")) {
+            if (args.getExpressionList().get(0) instanceof AccessExpression accessExpression) {
+                if (accessExpression.getMember().getName().equals("data")) {
+                    // meow
+                    return;
+                }
+            }
+            String calledFunctionName = ((StringLiteral)((ExpressionList)((FunctionCallExpression) args.getExpressionList().getFirst()).getArgs()).getExpressionList().getFirst()).getValue();
+            for (SymbolTableItem item : SymbolTable.root.items.values()) {
+                if (item instanceof ContractDefinitionSymbolTableItem) {
+                    for (SymbolTableItem item1 : ((ContractDefinitionSymbolTableItem)item).getContractSymbolTable().items.values()) {
+                        if (item1 instanceof FunctionDefinitionSymbolTableItem && ((FunctionDefinitionSymbolTableItem)item1).getFunctionName().equals(calledFunctionName.substring(1, calledFunctionName.indexOf('(')))) {
+                            FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem = (FunctionDefinitionSymbolTableItem) item1;
+                            ArrayList<Parameter> parameters = functionDefinitionSymbolTableItem.getFunctionDefinitionPointer().getParameterList().getParameters();
+
+                            String paramTypes = calledFunctionName.substring(calledFunctionName.indexOf('(') + 1, calledFunctionName.indexOf(')'));
+
+                            String[] extractedTypes = paramTypes.split(",\\s*");
+
+                            if (extractedTypes.length != parameters.size()) {
+                                continue;
+                            }
+
+                            for (int i = 0; i < extractedTypes.length; i++) {
+                                Type paramType = parameters.get(i).getType();
+                                String extractedType = extractedTypes[i];
+
+                                // Assuming you have a method `isTypeCompatible` to match string representation of types with actual types
+                                if (!isTypeCompatible(extractedType, paramType)) {
+                                    continue;
+                                }
+                            }
+
+                            this.currentDelegatecallFunctionsFound.add(item1);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean isTypeCompatible(String extractedType, Type paramType) {
+        // Handle uint types of any size
+        if (paramType instanceof UintType && extractedType.startsWith("uint")) {
+            UintType uintType = (UintType) paramType;
+            String expectedBits = uintType.getNumberOfBits();
+            String extractedBits = extractedType.replaceAll("\\D+", ""); // Extract digits from the type
+            return expectedBits.isEmpty() || extractedBits.equals(expectedBits); // Handle default "uint" and specific "uint256"
+        }
+
+        // Handle int types of any size
+        if (paramType instanceof IntType && extractedType.startsWith("int")) {
+            IntType intType = (IntType) paramType;
+            String expectedBits = intType.getNumberOfBits();
+            String extractedBits = extractedType.replaceAll("\\D+", ""); // Extract digits from the type
+            return expectedBits.isEmpty() || extractedBits.equals(expectedBits); // Handle default "int" and specific "int256"
+        }
+
+        // Handle address type
+        if (paramType instanceof AddressType && extractedType.equals("address")) {
+            return true;
+        }
+
+        // Handle payable address type
+        if (paramType instanceof AddressPayable && extractedType.equals("address")) {
+            return true;
+        }
+
+        // Handle bool type
+        if (paramType instanceof BoolType && extractedType.equals("bool")) {
+            return true;
+        }
+
+        // Handle string type
+        if (paramType instanceof StringType && extractedType.equals("string")) {
+            return true;
+        }
+
+        // Handle fixed-point types
+        if (paramType instanceof FixedType && extractedType.startsWith("fixed")) {
+            FixedType fixedType = (FixedType) paramType;
+            String expectedBits = fixedType.getNumberOfBits();
+            String extractedBits = extractedType.replaceAll("\\D+", ""); // Extract digits from the type
+            return extractedBits.equals(expectedBits);
+        }
+
+        // Handle ufixed-point types
+        if (paramType instanceof UfixedType && extractedType.startsWith("ufixed")) {
+            UfixedType ufixedType = (UfixedType) paramType;
+            String expectedBits = ufixedType.getNumberOfBits();
+            String extractedBits = extractedType.replaceAll("\\D+", ""); // Extract digits from the type
+            return extractedBits.equals(expectedBits);
+        }
+
+        // Handle list type (dynamic and fixed arrays)
+        if (paramType instanceof ListType && extractedType.endsWith("[]")) {
+            String baseType = extractedType.substring(0, extractedType.length() - 2); // remove "[]"
+            ListType listType = (ListType) paramType;
+            return isTypeCompatible(baseType, listType.getType()); // Recursively check base type
+        }
+
+        // Handle fixed-size array (e.g., uint256[10])
+        if (paramType instanceof ListType && extractedType.matches(".*\\[\\d+\\]")) {
+            // Extract the base type (e.g., "uint256" from "uint256[10]")
+            String baseType = extractedType.substring(0, extractedType.indexOf('['));
+            ListType listType = (ListType) paramType;
+            return isTypeCompatible(baseType, listType.getType()); // Recursively check base type
+        }
+
+        // Handle tuple types
+        if (paramType instanceof TupleType) {
+            TupleType tupleType = (TupleType) paramType;
+            String[] extractedTupleTypes = extractedType
+                    .substring(1, extractedType.length() - 1) // Remove parentheses ()
+                    .split(",\\s*"); // Split by comma and remove any extra spaces
+            if (tupleType.getElementTypes().size() != extractedTupleTypes.length) {
+                return false;
+            }
+            for (int i = 0; i < extractedTupleTypes.length; i++) {
+                if (!isTypeCompatible(extractedTupleTypes[i], tupleType.getElementTypes().get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Handle user-defined types (structs, contracts)
+        if (paramType instanceof UserDefinedTypeName) {
+            UserDefinedTypeName userType = (UserDefinedTypeName) paramType;
+            String typeNameFromChain = userType.getTypeChain().get(userType.getTypeChain().size() - 1).getName(); // Get the last element in the type chain
+            return extractedType.equals(typeNameFromChain);
+        }
+
+        // Default fallback: return false for unmatched types
+        return false;
+    }
+
 
     // TernaryOperatorExpression Type Inference
     @Override
@@ -257,9 +440,14 @@ public class TypeEvaluator extends Visitor<Type> {
 
         // for built-in variables
         if (accessExpression.getMaster() instanceof Identifier && ((Identifier) accessExpression.getMaster()).getName().equals("msg")) {
-            if (accessExpression.getMember().getName().equals("sender")) return new AddressType();
-            else if (accessExpression.getMember().getName().equals("value")) return new UintType("");
+            if (accessExpression.getMember().getName().equals("sender")) {
+                return new AddressType();
+            }
+            else if (accessExpression.getMember().getName().equals("value")) {
+                return new UintType("");
+            }
         }
+
         if (accessExpression.getMember().getName().equals("balance") &&
             accessExpression.getMaster() instanceof FunctionCallExpression &&
             FunctionDefinition.extractName(((FunctionCallExpression) accessExpression.getMaster()).getFunctionName()).equals("address") &&
@@ -278,7 +466,7 @@ public class TypeEvaluator extends Visitor<Type> {
             userDefinedTypeName.addChainRing(contractDefinitionSymbolTableItem.getContractName());
             return userDefinedTypeName;
         } catch (Exception e) {
-            System.out.println("Maybe fallback");
+//            System.out.println("Maybe fallback");
         }
 
 
@@ -314,13 +502,30 @@ public class TypeEvaluator extends Visitor<Type> {
             return null;
         }
 
+        if (accessExpression.getMaster() instanceof BinaryExpression && ((BinaryExpression) accessExpression.getMaster()).getBinaryOperator().equals(BinaryOperator.INDEXING)){
+            UserDefinedTypeName userDefinedTypeName = new UserDefinedTypeName();
+            userDefinedTypeName.addChainRing(((Identifier)((BinaryExpression) accessExpression.getMaster()).getFirstOperand()).getName());
+            return resolveMemberFromContractOrStruct(userDefinedTypeName, accessExpression.getMember());
+        }
+
         Type masterType = accessExpression.getMaster().accept(this);
 
         // Handle other types, such as tuples or structs
+        if (accessExpression.getMember().getName().equals("length"))
+            return new UintType();
+
+        if (accessExpression.getMaster() instanceof Identifier && ((Identifier) accessExpression.getMaster()).getName().equals("block"))
+            return new UintType();
+
+        if (accessExpression.getMember().getName().equals("call"))
+            return new AddressType();
+
         if (masterType instanceof UserDefinedTypeName) {
             return resolveMemberFromContractOrStruct((UserDefinedTypeName) masterType, accessExpression.getMember());
         } else if (masterType instanceof TupleType) {
             return resolveTupleMember((TupleType) masterType, accessExpression.getMember());
+        } else if (masterType instanceof Mapping mapping) {
+            return mapping.getMappingValue();
         } else {
             System.err.println("Unsupported master type in access expression: " + masterType);
             return null;
@@ -332,23 +537,17 @@ public class TypeEvaluator extends Visitor<Type> {
         String typeName = masterType.getTypeChain().get(0).getName(); // Get the contract or struct name
 
         try {
-            // Look for the contract or struct in the symbol table
-            SymbolTableItem item = this.symbolTable.getItem(typeName, true);
-            this.currentItemFoundFromSymbolTable = item;
-
-            if (item instanceof ContractDefinitionSymbolTableItem) {
-                // If it's a contract, resolve the member (could be a variable or function)
-                ContractDefinitionSymbolTableItem contractItem = (ContractDefinitionSymbolTableItem) item;
-                SymbolTable contractSymbolTable = contractItem.getContractSymbolTable();
-                return resolveMemberFromSymbolTable(contractSymbolTable, member);
-            } else if (item instanceof StructDefinitionSymbolTableItem) {
-                // If it's a struct, resolve the member as a struct field
-                StructDefinitionSymbolTableItem structItem = (StructDefinitionSymbolTableItem) item;
-                SymbolTable structSymbolTable = structItem.getSymbolTable();
-                return resolveMemberFromSymbolTable(structSymbolTable, member);
-            }
+            SymbolTableItem structItem = this.symbolTable.getItem(StructInitializationExpression.START_KEY + typeName, true);
+            this.currentItemFoundFromSymbolTable = structItem;
+            return resolveMemberFromSymbolTable(((StructDefinitionSymbolTableItem)structItem).getSymbolTable(), member);
         } catch (ItemNotFoundException e) {
-            System.err.println("Contract or struct " + typeName + " not found in symbol table.");
+            try {
+                SymbolTableItem item = this.symbolTable.getItem(ContractDefinitionSymbolTableItem.START_KEY + typeName, true);
+                this.currentItemFoundFromSymbolTable = item;
+                return resolveMemberFromSymbolTable(((ContractDefinitionSymbolTableItem)item).getContractSymbolTable(), member);
+            } catch (ItemNotFoundException e1) {
+
+            }
         }
 
         return null; // Return null if not found
@@ -366,18 +565,21 @@ public class TypeEvaluator extends Visitor<Type> {
 
     private Type resolveMemberFromSymbolTable(SymbolTable symbolTable, Identifier member) {
         try {
-            SymbolTableItem memberItem = symbolTable.getItem(member.getName(), true);
-
-            if (memberItem instanceof VariableDeclarationSymbolTableItem) {
-                return ((VariableDeclarationSymbolTableItem) memberItem).getType();  // Return the type of the variable
-            } else if (memberItem instanceof FunctionDefinitionSymbolTableItem) {
-                return getFunctionReturnType((FunctionDefinitionSymbolTableItem) memberItem);  // Get and return the function's return type
-            } else {
-                System.err.println("Unsupported member type for " + member.getName());
-            }
+            VariableDeclarationSymbolTableItem item = (VariableDeclarationSymbolTableItem) this.symbolTable.getItem(VariableDeclarationSymbolTableItem.START_KEY + member.getName(), true);
+            this.currentItemFoundFromSymbolTable = item;
+            return item.getType();
         } catch (ItemNotFoundException e) {
-            System.err.println("Member " + member.getName() + " not found in symbol table.");
+
         }
+
+        try {
+            FunctionDefinitionSymbolTableItem item = (FunctionDefinitionSymbolTableItem) this.symbolTable.getItem(FunctionDefinition.START_KEY + member.getName(), true);
+            this.currentItemFoundFromSymbolTable = item;
+            return getFunctionReturnType(item);
+        } catch (ItemNotFoundException e) {
+
+        }
+
         return null;
     }
 
@@ -510,7 +712,6 @@ public class TypeEvaluator extends Visitor<Type> {
             }
         }
 
-        System.out.println("fallback function called");
         return new NoType();
     }
 
@@ -557,5 +758,29 @@ public class TypeEvaluator extends Visitor<Type> {
 
     public void setCurrentItemFoundFromSymbolTable(SymbolTableItem currentItemFoundFromSymbolTable) {
         this.currentItemFoundFromSymbolTable = currentItemFoundFromSymbolTable;
+    }
+
+    public boolean isCheckDelegatecall() {
+        return checkDelegatecall;
+    }
+
+    public void setCheckDelegatecall(boolean checkDelegatecall) {
+        this.checkDelegatecall = checkDelegatecall;
+    }
+
+    public ArrayList<SymbolTableItem> getCurrentDelegatecallFunctionsFound() {
+        return currentDelegatecallFunctionsFound;
+    }
+
+    public void setCurrentDelegatecallFunctionsFound(ArrayList<SymbolTableItem> currentDelegatecallFunctionsFound) {
+        this.currentDelegatecallFunctionsFound = currentDelegatecallFunctionsFound;
+    }
+
+    public StructDefinitionSymbolTableItem getCurrentStructDefinitionSymbolTableItem() {
+        return currentStructDefinitionSymbolTableItem;
+    }
+
+    public void setCurrentStructDefinitionSymbolTableItem(StructDefinitionSymbolTableItem currentStructDefinitionSymbolTableItem) {
+        this.currentStructDefinitionSymbolTableItem = currentStructDefinitionSymbolTableItem;
     }
 }

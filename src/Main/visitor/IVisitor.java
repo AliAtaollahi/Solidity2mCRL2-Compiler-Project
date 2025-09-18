@@ -15,6 +15,10 @@ import main.ast.nodes.expression.value.ImportPath;
 import main.ast.nodes.expression.value.StorageLocation;
 import main.ast.nodes.statement.*;
 import main.symbolTable.items.*;
+import main.symbolTable.items.statement.DoWhileStatementSymbolTableItem;
+import main.symbolTable.items.statement.ForStatementSymbolTableItem;
+import main.symbolTable.items.statement.IfStatementSymbolTableItem;
+import main.symbolTable.items.statement.WhileStatementSymbolTableItem;
 
 public interface IVisitor<T> {
     T visit(SourceUnit sourceUnit);
@@ -193,6 +197,10 @@ public interface IVisitor<T> {
 
     T visit(FunctionDefinitionSymbolTableItem functionDefinitionSymbolTableItem);
     T visit(Expression expression);
-
     T visit(NoType noType);
+    T visit(WhileStatementSymbolTableItem whileStatementSymbolTableItem);
+    T visit(ForStatementSymbolTableItem forStatementSymbolTableItem);
+    T visit(IfStatementSymbolTableItem ifStatementSymbolTableItem);
+    T visit(DoWhileStatementSymbolTableItem doWhileStatementSymbolTableItem);
+
 }

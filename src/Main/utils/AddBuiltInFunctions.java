@@ -9,12 +9,17 @@ import java.nio.file.Paths;
 public class AddBuiltInFunctions {
 
     // Built-in functions in one line
+    private static final String ABI_CONTRACT = " contract abi { function encodeWithSignature(string memory functionSignature, bytes[] memory arguments) public pure returns (bytes memory) { }     function encodeWithSelector(bytes4 selector, bytes[] memory arguments) public returns (bytes memory) { bytes memory data; return data; } } ";
+    private static boolean isABI_CONTRACTAddedd = false;
     private static final String BUILT_IN_FUNCTIONS =
             " function transfer_builtIn(address payable recipient, uint256 amount) public { }" +
                     " function payable_builtIn(address targetAddress) public pure returns (address payable) { }" +
                     " function require_builtIn(bool condition) public pure { }" +
                     " function delegatecall_builtIn(address target, bytes memory functionAddress) public returns (bool, bytes memory) { }" +
-                    " function send_builtIn(address payable recipient, uint256 amount) public returns (bool) { }";
+                    " function send_builtIn(address payable recipient, uint256 amount) public returns (bool) { }" +
+                    " function revert_builtIn(string memory errorMessage) public { }" +
+                    " function require_builtIn(bool condition) public { }" +
+                    " function require_builtIn(bool condition, string memory message) { }";
 
     // Method to add the built-in functions after the line containing 'contract'
     public static String addBuiltInFunctionsToFile(String filePath) throws IOException {
@@ -27,8 +32,13 @@ public class AddBuiltInFunctions {
             while ((line = reader.readLine()) != null) {
                 modifiedFileContent.append(line);
 
+                if(!isABI_CONTRACTAddedd) {
+                    modifiedFileContent.append(ABI_CONTRACT);
+                    isABI_CONTRACTAddedd = true;
+                }
+
                 // Insert the built-in functions on the same line after 'contract'
-                if (line.contains("contract ")) {
+                if (line.contains("contract ") && !line.contains("contract abi ")) {
                     modifiedFileContent.append(BUILT_IN_FUNCTIONS);
                 }
 
